@@ -66,7 +66,7 @@ $(BUILD)/boot.o: $(BUILD)/boot.a
 	cd $(BUILD)/boot && ar x ../boot.a
 	ld -r $(BUILD)/boot/*.o -o $@
 
-$(BUILD)/boot.a: Cargo.lock Cargo.toml src/* src/*/*
+$(BUILD)/boot.a: Cargo.lock Cargo.toml src/* src/*/* src/*/*/*
 	mkdir -p $(BUILD)
 	cargo xrustc \
 		--lib \

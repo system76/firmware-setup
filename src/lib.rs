@@ -38,6 +38,7 @@ pub mod fs;
 pub mod hw;
 pub mod image;
 pub mod io;
+pub mod key;
 pub mod loaded_image;
 pub mod null;
 pub mod panic;
@@ -78,11 +79,9 @@ fn main() {
 
     let _ = (uefi.BootServices.SetWatchdogTimer)(0, 0, 0, ptr::null());
 
-    /*
     if let Err(err) = set_max_mode(uefi.ConsoleOut).into_result() {
         println!("Failed to set max mode: {:?}", err);
     }
-    */
 
     let _ = (uefi.ConsoleOut.SetAttribute)(uefi.ConsoleOut, 0x0F);
 
