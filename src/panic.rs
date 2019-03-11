@@ -1,5 +1,3 @@
-use core::fmt;
-
 // These functions are used by the compiler, but not
 // for a bare-bones hello world. These are normally
 // provided by libstd.
@@ -14,10 +12,23 @@ pub extern fn rust_eh_unwind_resume() {
     loop {}
 }
 
-#[lang = "panic_fmt"]
+#[panic_handler]
 #[no_mangle]
-pub extern fn rust_begin_panic(msg: fmt::Arguments, file: &'static str, line: u32) -> ! {
-    print!("{}:{}: {}", file, line, msg);
+pub extern fn rust_begin_panic(pi: &::core::panic::PanicInfo) -> ! {
+    print!("SETUP PANIC: {}", pi);
+
+    loop {}
+}
+
+#[lang = "oom"]
+#[no_mangle]
+pub extern "C" fn rust_oom(layout: ::core::alloc::Layout) -> ! {
+    println!(
+        "SETUP OOM: {} bytes aligned to {} bytes\n",
+        layout.size(),
+        layout.align()
+    );
+
     loop {}
 }
 

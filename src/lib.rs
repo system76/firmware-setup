@@ -4,13 +4,12 @@
 #![feature(compiler_builtins_lib)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
-#![feature(global_allocator)]
 #![feature(lang_items)]
 #![feature(try_trait)]
 
 #[macro_use]
 extern crate alloc;
-extern crate compiler_builtins;
+extern crate coreboot_table;
 extern crate dmi;
 extern crate ecflash;
 extern crate orbclient;
@@ -32,9 +31,9 @@ pub static mut UEFI: *mut uefi::system::SystemTable = 0 as *mut uefi::system::Sy
 #[macro_use]
 mod macros;
 
+pub mod app;
 pub mod display;
 pub mod exec;
-pub mod flash;
 pub mod fs;
 pub mod hw;
 pub mod image;
@@ -87,8 +86,8 @@ fn main() {
 
     let _ = (uefi.ConsoleOut.SetAttribute)(uefi.ConsoleOut, 0x0F);
 
-    if let Err(err) = flash::main() {
-        println!("Setup error: {:?}", err);
+    if let Err(err) = app::main() {
+        println!("App error: {:?}", err);
         let _ = io::wait_key();
     }
 

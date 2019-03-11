@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use core::{mem, slice};
 use uefi::fs::{File as InnerFile, FileInfo, SimpleFileSystem, FILE_MODE_READ};
-use uefi::guid::{Guid, FILE_SYSTEM_GUID};
+use uefi::guid::{Guid, FILE_INFO_ID, FILE_SYSTEM_GUID};
 use uefi::status::{Error, Result};
 
 use proto::Protocol;
@@ -31,6 +31,19 @@ impl FileSystem {
 pub struct File(pub &'static mut InnerFile);
 
 impl File {
+    pub fn info(&mut self) -> Result<FileInfo> {
+        let mut info = FileInfo::default();
+        let buf = unsafe {
+            slice::from_raw_parts_mut(
+                &mut info as *mut _ as *mut u8,
+                mem::size_of_val(&info)
+            )
+        };
+        let mut len = buf.len();
+        (self.0.GetInfo)(self.0, &FILE_INFO_ID, &mut len, buf.as_mut_ptr())?;
+        Ok(info)
+    }
+
     pub fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         let mut len = buf.len();
         (self.0.Read)(self.0, &mut len, buf.as_mut_ptr())?;
