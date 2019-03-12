@@ -22,3 +22,7 @@
 	path = coreboot-table
 	url = https://gitlab.redox-os.org/redox-os/coreboot-table.git
 	branch = master
+[submodule "orbfont"]
+	path = orbfont
+	url = https://gitlab.redox-os.org/redox-os/orbfont.git
+	branch = no_std

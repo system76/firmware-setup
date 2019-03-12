@@ -12,10 +12,14 @@ coreboot-table = { path = "coreboot-table" }
 dmi = { path = "dmi" }
 ecflash = { path = "ecflash" }
 orbclient = { path = "orbclient" }
+orbfont = { path = "orbfont", features = ["no_std"] }
 plain = "0.2.3"
 uefi = { path = "uefi" }
 uefi_alloc = { path = "uefi_alloc" }
-x86 = "0.7"
+#x86 = "0.7"
+
+[patch.crates-io]
+ordered-float = { git = "https://github.com/cbiffle/rust-ordered-float.git", branch = "no-std", default-features = false }
 
 [package.metadata.cargo-xbuild]
 memcpy = true
