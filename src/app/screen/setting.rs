@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use core::str;
+use core::{char, str};
 use coreboot_table::{self, Table, CmosRecord};
 use orbclient::{Color, Renderer};
 use orbfont::Font;
@@ -57,7 +57,7 @@ unsafe fn nvram_read(mut bit: u32, mut len: u32) -> u32 {
 }
 
 pub struct SettingScreen {
-    entries: Vec<(String, u32, u32)>,
+    entries: Vec<(String, u32, u32, u32)>,
     enums_map: BTreeMap<u32, Vec<(String, u32)>>,
     row: usize,
     column: usize,
@@ -74,11 +74,19 @@ impl SettingScreen {
                     for record in cmos.records() {
                         match record {
                             CmosRecord::Entry(entry) => {
-                                let name = str::from_utf8(entry.name()).unwrap();
-                                let value = unsafe { nvram_read(entry.bit, entry.length) };
-                                entries.push(
-                                    (name.to_string(), entry.config_id, value)
-                                );
+                                match unsafe { char::from_u32_unchecked(entry.config) } {
+                                    'e' | 'h' if entry.length > 0 => {
+                                        let name = str::from_utf8(entry.name()).unwrap();
+                                        let value = unsafe { nvram_read(entry.bit, entry.length) };
+                                        entries.push((
+                                            name.to_string(),
+                                            entry.config_id,
+                                            value,
+                                            (1 << entry.length) - 1
+                                        ));
+                                    },
+                                    _ => ()
+                                }
                             },
                             CmosRecord::Enum(enum_) => {
                                 let text = str::from_utf8(enum_.text()).unwrap();
@@ -98,7 +106,7 @@ impl SettingScreen {
             Error::NotFound
         })?;
 
-        entries.retain(|entry| enums_map.contains_key(&entry.1));
+        //entries.retain(|entry| enums_map.contains_key(&entry.1));
 
         Ok(Box::new(SettingScreen {
             entries: entries,
@@ -117,7 +125,7 @@ impl Screen for SettingScreen {
 
         let entry_height = padding + font_height + padding;
 
-        let mut y = (display.height() as i32 - self.entries.len() as i32 * (entry_height + margin))/2;
+        let mut y = (display.height() as i32 + 64 - self.entries.len() as i32 * (entry_height + margin))/2;
 
         for (i, entry) in self.entries.iter().enumerate() {
             let entry_width = 320;
@@ -146,29 +154,29 @@ impl Screen for SettingScreen {
 
             font.render(&entry.0, font_height as f32).draw(display, x + padding, y + padding, fg);
 
+            x += entry_width + margin;
+
+            if i == self.row && 1 == self.column {
+                display.rounded_rect(x - 2, y - 2, entry_width as u32 + 4, entry_height as u32 + 4, 8, true, Color::rgb(0x94, 0x94, 0x94));
+                display.rounded_rect(x + 2, y + 2, entry_width as u32 - 4, entry_height as u32 - 4, 6, true, bg);
+            } else {
+                display.rect(x, y, entry_width as u32, entry_height as u32, bg);
+            }
+
+            let mut selected_opt = None;
             if let Some(enums) = self.enums_map.get(&entry.1) {
-                x += entry_width + margin;
-
-                if i == self.row && 1 == self.column {
-                    display.rounded_rect(x - 2, y - 2, entry_width as u32 + 4, entry_height as u32 + 4, 8, true, Color::rgb(0x94, 0x94, 0x94));
-                    display.rounded_rect(x + 2, y + 2, entry_width as u32 - 4, entry_height as u32 - 4, 6, true, bg);
-                } else {
-                    display.rect(x, y, entry_width as u32, entry_height as u32, bg);
-                }
-
-                let mut selected_opt = None;
                 for (name, value) in enums.iter() {
                     if *value == entry.2 {
                         selected_opt = Some(name);
                         break;
                     }
                 }
+            }
 
-                if let Some(selected) = selected_opt {
-                    font.render(&format!("{}: {}", entry.2, selected), font_height as f32).draw(display, x + padding, y + padding, fg);
-                } else {
-                    font.render(&format!("{}", entry.2), font_height as f32).draw(display, x + padding, y + padding, fg);
-                }
+            if let Some(selected) = selected_opt {
+                font.render(&format!("{}: {}", entry.2, selected), font_height as f32).draw(display, x + padding, y + padding, fg);
+            } else {
+                font.render(&format!("{}", entry.2), font_height as f32).draw(display, x + padding, y + padding, fg);
             }
 
             y += entry_height + margin;
@@ -184,6 +192,22 @@ impl Screen for SettingScreen {
             Key::Enter if self.column == 0 => self.column = 1,
             Key::Escape if self.column == 0 => return MainScreen::new(2).map(Some),
             Key::Escape if self.column > 0 => self.column -= 1,
+            Key::PageUp => {
+                let row = self.row;
+                if let Some(entry) = self.entries.get_mut(row) {
+                    if entry.2 > 0 {
+                        entry.2 -= 1;
+                    }
+                }
+            },
+            Key::PageDown => {
+                let row = self.row;
+                if let Some(entry) = self.entries.get_mut(row) {
+                    if entry.2 < entry.3 {
+                        entry.2 += 1;
+                    }
+                }
+            },
             _ => (),
         }
 
