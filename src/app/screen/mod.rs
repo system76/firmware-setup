@@ -5,6 +5,9 @@ use uefi::status::Result;
 use display::Display;
 use key::Key;
 
+pub use self::boot::BootScreen;
+mod boot;
+
 pub use self::main::MainScreen;
 mod main;
 

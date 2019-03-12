@@ -14,8 +14,50 @@ use key::Key;
 use super::{Screen, MainScreen};
 use super::super::coreboot::IdentityMapper;
 
+unsafe fn cmos_read(index: u8) -> u8 {
+    let value;
+    asm!(
+        "
+        cli
+        out 0x70, al
+        in al, 0x71
+        sti
+        "
+        : "={al}"(value)
+        : "{al}"(index)
+        :
+        : "volatile", "intel"
+    );
+    value
+}
+
+unsafe fn nvram_read(mut bit: u32, mut len: u32) -> u32 {
+    let mut data = 0;
+
+    let mut index = 0;
+    let mut byte = 0;
+    let mut mask = 1;
+    while len > 0 {
+        let new_index = (bit / 8) as u8;
+        if mask == 1 || index != new_index {
+            index = new_index;
+            byte = cmos_read(index);
+        }
+
+        if byte & (1 << (bit % 8)) > 0 {
+            data |= mask;
+        }
+
+        len -= 1;
+        bit += 1;
+        mask <<= 1;
+    }
+
+    data
+}
+
 pub struct SettingScreen {
-    entries: Vec<(String, u32)>,
+    entries: Vec<(String, u32, u32)>,
     enums_map: BTreeMap<u32, Vec<(String, u32)>>,
     row: usize,
     column: usize,
@@ -33,8 +75,9 @@ impl SettingScreen {
                         match record {
                             CmosRecord::Entry(entry) => {
                                 let name = str::from_utf8(entry.name()).unwrap();
+                                let value = unsafe { nvram_read(entry.bit, entry.length) };
                                 entries.push(
-                                    (name.to_string(), entry.config_id)
+                                    (name.to_string(), entry.config_id, value)
                                 );
                             },
                             CmosRecord::Enum(enum_) => {
@@ -106,15 +149,25 @@ impl Screen for SettingScreen {
             if let Some(enums) = self.enums_map.get(&entry.1) {
                 x += entry_width + margin;
 
-                if let Some((name, value)) = enums.first() {
-                    if i == self.row && 1 == self.column {
-                        display.rounded_rect(x - 2, y - 2, entry_width as u32 + 4, entry_height as u32 + 4, 8, true, Color::rgb(0x94, 0x94, 0x94));
-                        display.rounded_rect(x + 2, y + 2, entry_width as u32 - 4, entry_height as u32 - 4, 6, true, bg);
-                    } else {
-                        display.rect(x, y, entry_width as u32, entry_height as u32, bg);
-                    }
+                if i == self.row && 1 == self.column {
+                    display.rounded_rect(x - 2, y - 2, entry_width as u32 + 4, entry_height as u32 + 4, 8, true, Color::rgb(0x94, 0x94, 0x94));
+                    display.rounded_rect(x + 2, y + 2, entry_width as u32 - 4, entry_height as u32 - 4, 6, true, bg);
+                } else {
+                    display.rect(x, y, entry_width as u32, entry_height as u32, bg);
+                }
 
-                    font.render(name, font_height as f32).draw(display, x + padding, y + padding, fg);
+                let mut selected_opt = None;
+                for (name, value) in enums.iter() {
+                    if *value == entry.2 {
+                        selected_opt = Some(name);
+                        break;
+                    }
+                }
+
+                if let Some(selected) = selected_opt {
+                    font.render(&format!("{}: {}", entry.2, selected), font_height as f32).draw(display, x + padding, y + padding, fg);
+                } else {
+                    font.render(&format!("{}", entry.2), font_height as f32).draw(display, x + padding, y + padding, fg);
                 }
             }
 

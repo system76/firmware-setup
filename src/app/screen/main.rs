@@ -7,28 +7,28 @@ use uefi::status::Result;
 use display::Display;
 use key::Key;
 
-use super::{Screen, SettingScreen};
+use super::{Screen, BootScreen, SettingScreen};
 
 pub struct MainScreen {
     entries: Vec<&'static str>,
-    selected: usize,
+    row: usize,
 }
 
 impl MainScreen {
-    pub fn new(mut selected: usize) -> Result<Box<Screen>> {
+    pub fn new(mut row: usize) -> Result<Box<Screen>> {
         let entries = vec![
             "Continue",
             "Boot Menu",
             "Settings",
         ];
 
-        if selected >= entries.len() {
-            selected = 0;
+        if row >= entries.len() {
+            row = 0;
         }
 
         Ok(Box::new(MainScreen {
             entries: entries,
-            selected: selected,
+            row: row,
         }))
     }
 }
@@ -48,7 +48,7 @@ impl Screen for MainScreen {
 
             let mut x = (display.width() as i32 - entry_width)/2;
 
-            let (fg, bg) = if i == self.selected {
+            let (fg, bg) = if i == self.row {
                 (
                     Color::rgb(0x2f, 0x2f, 0x2f),
                     Color::rgb(0xeb, 0xeb, 0xeb),
@@ -60,7 +60,7 @@ impl Screen for MainScreen {
                 )
             };
 
-            if i == self.selected {
+            if i == self.row {
                 display.rounded_rect(x - 2, y - 2, entry_width as u32 + 4, entry_height as u32 + 4, 8, true, Color::rgb(0x94, 0x94, 0x94));
                 display.rounded_rect(x + 2, y + 2, entry_width as u32 - 4, entry_height as u32 - 4, 6, true, bg);
             } else {
@@ -77,13 +77,14 @@ impl Screen for MainScreen {
 
     fn key(mut self: Box<Self>, key: Key) -> Result<Option<Box<Screen>>> {
         match key {
-            Key::Up if self.selected > 0 => {
-                self.selected -= 1;
+            Key::Up if self.row > 0 => {
+                self.row -= 1;
             },
-            Key::Down if self.selected + 1 < self.entries.len() => {
-                self.selected += 1;
+            Key::Down if self.row + 1 < self.entries.len() => {
+                self.row += 1;
             },
-            Key::Enter => match self.selected {
+            Key::Enter => match self.row {
+                1 => return BootScreen::new().map(Some),
                 2 => return SettingScreen::new().map(Some),
                 _ => (),
             },
