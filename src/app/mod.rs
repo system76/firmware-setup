@@ -1,5 +1,6 @@
 use orbclient::{Color, Renderer};
-use uefi::status::Result;
+use orbfont::Font;
+use uefi::status::{Error, Result};
 
 use display::{Display, Output};
 use fs::load;
@@ -13,6 +14,7 @@ use self::screen::MainScreen;
 mod screen;
 
 static SPLASHBMP: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\splash.bmp");
+static FONTTTF: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\FiraSans-Regular.ttf");
 
 pub fn main() -> Result<()> {
     let mut display = {
@@ -55,7 +57,20 @@ pub fn main() -> Result<()> {
         println!(" Done");
     }
 
-    let mut screen = MainScreen::new()?;
+    let font;
+    {
+        println!("Loading Font...");
+        match Font::from_data(load(FONTTTF)?) {
+            Ok(ok) => font = ok,
+            Err(err) => {
+                println!("failed to parse font: {}", err);
+                return Err(Error::NotFound);
+            }
+        }
+        println!(" Done");
+    }
+
+    let mut screen = MainScreen::new(0)?;
     loop {
         display.set(Color::rgb(0x41, 0x3e, 0x3c));
 
@@ -67,15 +82,14 @@ pub fn main() -> Result<()> {
 
         {
             let prompt = concat!("Firmware Setup ", env!("CARGO_PKG_VERSION"));
-            let mut x = (display.width() as i32 - prompt.len() as i32 * 8)/2;
+
+            let text = font.render(prompt, 24.0);
+            let x = (display.width() as i32 - text.width() as i32)/2;
             let y = display.height() as i32 - 64;
-            for c in prompt.chars() {
-                display.char(x, y, c, Color::rgb(0xff, 0xff, 0xff));
-                x += 8;
-            }
+            text.draw(&mut display, x, y, Color::rgb(0xff, 0xff, 0xff));
         }
 
-        screen.draw(&mut display);
+        screen.draw(&mut display, &font);
 
         display.sync();
 

@@ -1,4 +1,5 @@
 use alloc::boxed::Box;
+use orbfont::Font;
 use uefi::status::Result;
 
 use display::Display;
@@ -11,6 +12,6 @@ pub use self::setting::SettingScreen;
 mod setting;
 
 pub trait Screen {
-    fn draw(&self, display: &mut Display);
+    fn draw(&self, display: &mut Display, font: &Font);
     fn key(self: Box<Self>, key: Key) -> Result<Option<Box<Screen>>>;
 }
