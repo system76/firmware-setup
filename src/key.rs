@@ -34,21 +34,26 @@ pub enum Key {
     Scancode(u16),
 }
 
-pub fn key() -> Result<Key> {
+pub fn raw_key() -> Result<TextInputKey> {
     let uefi = std::system_table();
 
     let mut index = 0;
     (uefi.BootServices.WaitForEvent)(1, &uefi.ConsoleIn.WaitForKey, &mut index)?;
 
-    let mut input = TextInputKey {
+    let mut key = TextInputKey {
         ScanCode: 0,
         UnicodeChar: 0
     };
 
-    (uefi.ConsoleIn.ReadKeyStroke)(uefi.ConsoleIn, &mut input)?;
+    (uefi.ConsoleIn.ReadKeyStroke)(uefi.ConsoleIn, &mut key)?;
 
-    Ok(match input.ScanCode {
-        0 => match unsafe { char::from_u32_unchecked(input.UnicodeChar as u32) } {
+    Ok(key)
+}
+
+pub fn key() -> Result<Key> {
+    let raw_key = raw_key()?;
+    Ok(match raw_key.ScanCode {
+        0 => match unsafe { char::from_u32_unchecked(raw_key.UnicodeChar as u32) } {
             '\u{8}' => Key::Backspace,
             '\t' => Key::Tab,
             '\r' => Key::Enter,

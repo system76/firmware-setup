@@ -21,7 +21,7 @@ impl<'a> ImageRoi<'a> {
         let last_offset = cmp::min(((self.y + self.h) * stride + self.x) as usize, self.image.data.len());
         while offset < last_offset {
             let next_offset = offset + stride as usize;
-            renderer.image(x, y, self.w, 1, &self.image.data[offset..]);
+            renderer.image_legacy(x, y, self.w, 1, &self.image.data[offset..]);
             offset = next_offset;
             y += 1;
         }
@@ -89,7 +89,7 @@ impl Image {
 
     /// Draw the image on a window
     pub fn draw<R: Renderer>(&self, renderer: &mut R, x: i32, y: i32) {
-        renderer.image(x, y, self.w, self.h, &self.data);
+        renderer.image_legacy(x, y, self.w, self.h, &self.data);
     }
 }
 

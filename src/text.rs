@@ -76,7 +76,7 @@ extern "win64" fn enable_cursor(output: &mut TextDisplay, enable: bool) -> Statu
 }
 
 impl<'a> TextDisplay<'a> {
-    pub fn new(display: &'a mut Display) -> TextDisplay<'a> {
+    pub fn new(display: ScaledDisplay<'a>) -> TextDisplay<'a> {
         let mode = Box::new(TextOutputMode {
             MaxMode: 0,
             Mode: 0,
@@ -101,12 +101,12 @@ impl<'a> TextDisplay<'a> {
             EnableCursor: enable_cursor,
             Mode: unsafe { mem::transmute(&*mode.deref()) },
 
-            mode: mode,
+            mode,
             off_x: 0,
             off_y: 0,
-            cols: cols,
-            rows: rows,
-            display: ScaledDisplay::new(display),
+            cols,
+            rows,
+            display,
         }
     }
 
@@ -246,5 +246,5 @@ impl<'a> TextDisplay<'a> {
 
 pub fn pipe<T, F: FnMut() -> Result<T>>(f: F) -> Result<T> {
     let mut display = Display::new(Output::one()?);
-    TextDisplay::new(&mut display).pipe(f)
+    TextDisplay::new(ScaledDisplay::new(&mut display)).pipe(f)
 }
