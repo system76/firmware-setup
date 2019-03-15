@@ -1,10 +1,7 @@
 #![no_std]
-#![feature(alloc)]
 #![feature(asm)]
-#![feature(compiler_builtins_lib)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
-#![feature(lang_items)]
 #![feature(prelude_import)]
 #![feature(try_trait)]
 
@@ -30,7 +27,6 @@ pub mod app;
 pub mod display;
 pub mod exec;
 pub mod fs;
-pub mod hw;
 pub mod image;
 pub mod io;
 pub mod key;
