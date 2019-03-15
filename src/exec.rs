@@ -7,8 +7,8 @@ use crate::proto::Protocol;
 use crate::string::wstr;
 
 pub fn exec_data(data: &[u8], name: &str, args: &[&str]) -> Result<usize> {
-    let handle = unsafe { crate::HANDLE };
-    let uefi = crate::uefi();
+    let handle = std::handle();
+    let uefi = std::system_table();
 
     let mut image_handle = Handle(0);
     (uefi.BootServices.LoadImage)(false, handle, 0, data.as_ptr(), data.len(), &mut image_handle)?;

@@ -1,4 +1,3 @@
-use alloc::boxed::Box;
 use orbfont::Font;
 use uefi::status::Result;
 

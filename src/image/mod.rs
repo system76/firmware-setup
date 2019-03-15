@@ -1,5 +1,3 @@
-use alloc::boxed::Box;
-use alloc::string::{String, ToString};
 use core::cmp;
 
 use orbclient::{Color, Renderer};

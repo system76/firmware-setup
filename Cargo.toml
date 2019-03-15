@@ -16,8 +16,14 @@ orbclient = { git = "https://gitlab.redox-os.org/redox-os/orbclient.git", branch
 orbfont = { path = "orbfont", features = ["no_std"] }
 plain = "0.2.3"
 uefi = { path = "uefi" }
-uefi_alloc = { path = "uefi_alloc" }
+uefi_std = { path = "uefi_std" }
 #x86 = "0.7"
+
+[patch."https://gitlab.redox-os.org/redox-os/uefi.git"]
+uefi = { path = "uefi" }
+
+[patch."https://gitlab.redox-os.org/redox-os/uefi_alloc.git"]
+uefi_alloc = { path = "uefi_alloc" }
 
 [package.metadata.cargo-xbuild]
 memcpy = true

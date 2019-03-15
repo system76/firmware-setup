@@ -1,4 +1,3 @@
-use alloc::vec::Vec;
 use core::{mem, slice};
 use uefi::fs::{File as InnerFile, FileInfo, SimpleFileSystem, FILE_MODE_READ};
 use uefi::guid::{Guid, FILE_INFO_ID, FILE_SYSTEM_GUID};

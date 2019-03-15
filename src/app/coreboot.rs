@@ -1,8 +1,6 @@
-use alloc::collections::BTreeMap;
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
 use core::str;
 use coreboot_table::{Mapper, PhysicalAddress, VirtualAddress, Table, CmosRecord};
+use std::collections::BTreeMap;
 
 pub struct IdentityMapper;
 

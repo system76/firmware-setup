@@ -1,4 +1,3 @@
-use alloc::vec::Vec;
 use core::ptr;
 use uefi::guid::GLOBAL_VARIABLE_GUID;
 use uefi::status::{Error, Result};
@@ -6,7 +5,7 @@ use uefi::status::{Error, Result};
 use crate::string::wstr;
 
 fn get(name: &str, data: &mut [u8]) -> Result<usize> {
-    let uefi = crate::uefi();
+    let uefi = std::system_table();
 
     let wname = wstr(name);
     let mut data_size = data.len();
@@ -15,7 +14,7 @@ fn get(name: &str, data: &mut [u8]) -> Result<usize> {
 }
 
 fn set(name: &str, data: &[u8]) -> Result<usize> {
-    let uefi = crate::uefi();
+    let uefi = std::system_table();
 
     let wname = wstr(name);
     let access = 1 | 2 | 4;

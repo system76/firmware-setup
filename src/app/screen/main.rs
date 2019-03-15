@@ -1,5 +1,3 @@
-use alloc::boxed::Box;
-use alloc::vec::Vec;
 use orbclient::{Color, Renderer};
 use orbfont::Font;
 use uefi::status::Result;

@@ -1,11 +1,8 @@
-use alloc::boxed::Box;
-use alloc::collections::BTreeMap;
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
 use core::{char, str};
 use coreboot_table::{self, Table, CmosRecord};
 use orbclient::{Color, Renderer};
 use orbfont::Font;
+use std::collections::BTreeMap;
 use uefi::status::{Error, Result};
 
 use crate::display::Display;

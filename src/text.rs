@@ -1,4 +1,3 @@
-use alloc::boxed::Box;
 use core::{char, mem};
 use core::ops::Deref;
 use orbclient::{Color, Renderer};
@@ -216,7 +215,7 @@ impl<'a> TextDisplay<'a> {
     }
 
     pub fn pipe<T, F: FnMut() -> Result<T>>(&mut self, mut f: F) -> Result<T> {
-        let uefi = unsafe { crate::uefi_mut() };
+        let uefi = unsafe { std::system_table_mut() };
 
         let stdout = self as *mut _;
         let mut stdout_handle = Handle(0);

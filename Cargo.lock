@@ -105,13 +105,8 @@ dependencies = [
  "orbfont 0.1.9",
  "plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "uefi 0.1.0",
- "uefi_alloc 0.1.0",
+ "uefi_std 0.1.0",
 ]
-
-[[package]]
-name = "uefi"
-version = "0.1.0"
-source = "git+https://gitlab.redox-os.org/redox-os/uefi.git#2f6cbde289d1415b067debcd187abfbe81bee699"
 
 [[package]]
 name = "uefi"
@@ -121,7 +116,15 @@ version = "0.1.0"
 name = "uefi_alloc"
 version = "0.1.0"
 dependencies = [
- "uefi 0.1.0 (git+https://gitlab.redox-os.org/redox-os/uefi.git)",
+ "uefi 0.1.0",
+]
+
+[[package]]
+name = "uefi_std"
+version = "0.1.0"
+dependencies = [
+ "uefi 0.1.0",
+ "uefi_alloc 0.1.0",
 ]
 
 [metadata]
@@ -135,4 +138,3 @@ dependencies = [
 "checksum plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 "checksum rusttype 0.7.5 (git+https://gitlab.redox-os.org/redox-os/rusttype.git?branch=no_std)" = "<none>"
 "checksum stb_truetype 0.2.6 (git+https://gitlab.redox-os.org/redox-os/stb_truetype-rs.git?branch=no_std)" = "<none>"
-"checksum uefi 0.1.0 (git+https://gitlab.redox-os.org/redox-os/uefi.git)" = "<none>"

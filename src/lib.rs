@@ -5,40 +5,26 @@
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
 #![feature(lang_items)]
+#![feature(prelude_import)]
 #![feature(try_trait)]
 
-#[macro_use]
-extern crate alloc;
 extern crate coreboot_table;
 extern crate dmi;
 extern crate ecflash;
 extern crate orbclient;
 extern crate orbfont;
 extern crate plain;
-extern crate uefi;
-extern crate uefi_alloc;
+#[macro_use]
+extern crate uefi_std as std;
+
+#[allow(unused_imports)]
+#[prelude_import]
+use std::prelude::*;
 
 use core::ops::Try;
 use core::ptr;
 use uefi::reset::ResetType;
 use uefi::status::{Result, Status};
-
-#[global_allocator]
-static ALLOCATOR: uefi_alloc::Allocator = uefi_alloc::Allocator;
-
-pub static mut HANDLE: uefi::Handle = uefi::Handle(0);
-pub static mut UEFI: *mut uefi::system::SystemTable = 0 as *mut uefi::system::SystemTable;
-
-pub fn uefi() -> &'static uefi::system::SystemTable {
-    unsafe { & *UEFI }
-}
-
-pub unsafe fn uefi_mut() -> &'static mut uefi::system::SystemTable {
-    &mut *UEFI
-}
-
-#[macro_use]
-mod macros;
 
 pub mod app;
 pub mod display;
@@ -49,12 +35,9 @@ pub mod image;
 pub mod io;
 pub mod key;
 pub mod loaded_image;
-pub mod math;
 pub mod null;
-pub mod panic;
 pub mod pointer;
 pub mod proto;
-pub mod rt;
 pub mod shell;
 pub mod string;
 pub mod text;
@@ -84,8 +67,9 @@ fn set_max_mode(output: &uefi::text::TextOutput) -> Result<()> {
     Ok(())
 }
 
-fn main() {
-    let uefi = crate::uefi();
+#[no_mangle]
+pub extern "C" fn main() -> Status {
+    let uefi = std::system_table();
 
     let _ = (uefi.BootServices.SetWatchdogTimer)(0, 0, 0, ptr::null());
 
@@ -100,5 +84,5 @@ fn main() {
         let _ = io::wait_key();
     }
 
-    (crate::uefi().RuntimeServices.ResetSystem)(ResetType::Cold, Status(0), 0, ptr::null());
+    (std::system_table().RuntimeServices.ResetSystem)(ResetType::Cold, Status(0), 0, ptr::null())
 }

@@ -1,9 +1,8 @@
-use alloc::vec::Vec;
 use core::slice;
 use uefi::guid::GuidKind;
 
 pub fn dmi() -> Vec<dmi::Table> {
-    let uefi = crate::uefi();
+    let uefi = std::system_table();
 
     for table in uefi.config_tables() {
         let data_opt = match table.VendorGuid.kind() {

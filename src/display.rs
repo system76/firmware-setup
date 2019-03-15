@@ -1,4 +1,3 @@
-use alloc::boxed::Box;
 use core::cmp;
 use core::ops::Try;
 use orbclient::{Color, Renderer};
