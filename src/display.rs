@@ -1,5 +1,6 @@
+use core::cell::Cell;
 use core::ops::Try;
-use orbclient::{Color, Renderer};
+use orbclient::{Color, Mode, Renderer};
 use std::proto::Protocol;
 use uefi::graphics::{GraphicsOutput, GraphicsBltOp, GraphicsBltPixel};
 use uefi::guid::{Guid, GRAPHICS_OUTPUT_PROTOCOL_GUID};
@@ -21,6 +22,7 @@ pub struct Display {
     w: u32,
     h: u32,
     data: Box<[Color]>,
+    mode: Cell<Mode>,
 }
 
 impl Display {
@@ -32,6 +34,7 @@ impl Display {
             w: w,
             h: h,
             data: vec![Color::rgb(0, 0, 0); w as usize * h as usize].into_boxed_slice(),
+            mode: Cell::new(Mode::Blend),
         }
     }
 
@@ -60,7 +63,7 @@ impl Display {
             unsafe {
                 let data_ptr = self.data.as_mut_ptr() as *mut u32;
                 fast_copy(data_ptr as *mut u8, data_ptr.offset(off1 as isize) as *const u8, off2 as usize * 4);
-                fast_set32(data_ptr.offset(off2 as isize), color.0, off1 as usize);
+                fast_set32(data_ptr.offset(off2 as isize), color.data, off1 as usize);
             }
         }
     }
@@ -75,7 +78,6 @@ impl Renderer for Display {
         self.h
     }
 
-    /// Return a reference to a slice of colors making up the image
     fn data(&self) -> &[Color] {
         &self.data
     }
@@ -88,6 +90,10 @@ impl Renderer for Display {
         let w = self.width();
         let h = self.height();
         self.blit(0, 0, w, h)
+    }
+
+    fn mode(&self) -> &Cell<Mode> {
+        &self.mode
     }
 }
 
@@ -170,6 +176,10 @@ impl<'a> Renderer for ScaledDisplay<'a> {
         let w = self.width();
         let h = self.height();
         self.rect(0, 0, w, h, color);
+    }
+
+    fn mode(&self) -> &Cell<Mode> {
+        self.display.mode()
     }
 }
 

@@ -27,14 +27,6 @@ version = "0.1.5"
 source = "git+https://gitlab.redox-os.org/redox-os/coreboot-table.git#ff82497ec734dd767e25bace772b9dbe617d516f"
 
 [[package]]
-name = "dmi"
-version = "0.1.1"
-source = "git+https://gitlab.redox-os.org/redox-os/dmi.git#57d3e45a6bdefa77154294a7127091151608142f"
-dependencies = [
- "plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "ecflash"
 version = "0.1.0"
 source = "git+https://github.com/system76/ecflash.git#23513b89a96ad9858d0f63717f2fc3d8b4e8ad0b"
@@ -51,15 +43,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "orbclient"
-version = "0.3.8"
-source = "git+https://gitlab.redox-os.org/redox-os/orbclient.git?branch=no_std#5ae54b63da28605a089c3bcd88155635685da0df"
+version = "0.3.21"
 
 [[package]]
 name = "orbfont"
 version = "0.1.9"
 dependencies = [
  "num-traits 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "orbclient 0.3.8 (git+https://gitlab.redox-os.org/redox-os/orbclient.git?branch=no_std)",
+ "orbclient 0.3.21",
  "rusttype 0.7.5 (git+https://gitlab.redox-os.org/redox-os/rusttype.git?branch=no_std)",
 ]
 
@@ -75,6 +66,33 @@ dependencies = [
 name = "plain"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "redox_dmi"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "redox_uefi"
+version = "0.1.0"
+
+[[package]]
+name = "redox_uefi_alloc"
+version = "0.1.0"
+dependencies = [
+ "redox_uefi 0.1.0",
+]
+
+[[package]]
+name = "redox_uefi_std"
+version = "0.1.0"
+dependencies = [
+ "redox_uefi 0.1.0",
+ "redox_uefi_alloc 0.1.0",
+]
 
 [[package]]
 name = "rusttype"
@@ -102,32 +120,13 @@ name = "system76_firmware_setup"
 version = "1.0.0"
 dependencies = [
  "coreboot-table 0.1.5 (git+https://gitlab.redox-os.org/redox-os/coreboot-table.git)",
- "dmi 0.1.1 (git+https://gitlab.redox-os.org/redox-os/dmi.git)",
  "ecflash 0.1.0 (git+https://github.com/system76/ecflash.git)",
- "orbclient 0.3.8 (git+https://gitlab.redox-os.org/redox-os/orbclient.git?branch=no_std)",
+ "orbclient 0.3.21",
  "orbfont 0.1.9",
  "plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "uefi 0.1.0",
- "uefi_std 0.1.0",
-]
-
-[[package]]
-name = "uefi"
-version = "0.1.0"
-
-[[package]]
-name = "uefi_alloc"
-version = "0.1.0"
-dependencies = [
- "uefi 0.1.0",
-]
-
-[[package]]
-name = "uefi_std"
-version = "0.1.0"
-dependencies = [
- "uefi 0.1.0",
- "uefi_alloc 0.1.0",
+ "redox_dmi 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "redox_uefi 0.1.0",
+ "redox_uefi_std 0.1.0",
 ]
 
 [metadata]
@@ -135,12 +134,11 @@ dependencies = [
 "checksum arrayvec 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)" = "92c7fb76bc8826a8b33b4ee5bb07a247a81e76764ab4d55e8f73e3a4d8808c71"
 "checksum byteorder 1.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a019b10a2a7cdeb292db131fc8113e57ea2a908f6e7894b0c3c671893b65dbeb"
 "checksum coreboot-table 0.1.5 (git+https://gitlab.redox-os.org/redox-os/coreboot-table.git)" = "<none>"
-"checksum dmi 0.1.1 (git+https://gitlab.redox-os.org/redox-os/dmi.git)" = "<none>"
 "checksum ecflash 0.1.0 (git+https://github.com/system76/ecflash.git)" = "<none>"
 "checksum nodrop 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)" = "2f9667ddcc6cc8a43afc9b7917599d7216aa09c463919ea32c59ed6cac8bc945"
 "checksum num-traits 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0b3a5d7cc97d6d30d8b9bc8fa19bf45349ffe46241e8816f50f62f6d6aaabee1"
-"checksum orbclient 0.3.8 (git+https://gitlab.redox-os.org/redox-os/orbclient.git?branch=no_std)" = "<none>"
 "checksum ordered-float 1.0.1 (git+https://github.com/cbiffle/rust-ordered-float.git?branch=no-std)" = "<none>"
 "checksum plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
+"checksum redox_dmi 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4f00f61bcf7b6946ecd3e65f5871fb6b689680e59513eaa9a4d020bb73aa7fb7"
 "checksum rusttype 0.7.5 (git+https://gitlab.redox-os.org/redox-os/rusttype.git?branch=no_std)" = "<none>"
 "checksum stb_truetype 0.2.6 (git+https://gitlab.redox-os.org/redox-os/stb_truetype-rs.git?branch=no_std)" = "<none>"

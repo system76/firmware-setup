@@ -1,6 +1,7 @@
+use core::cell::Cell;
 use core::cmp;
 
-use orbclient::{Color, Renderer};
+use orbclient::{Color, Mode, Renderer};
 
 pub mod bmp;
 
@@ -31,7 +32,8 @@ impl<'a> ImageRoi<'a> {
 pub struct Image {
     w: u32,
     h: u32,
-    data: Box<[Color]>
+    data: Box<[Color]>,
+    mode: Cell<Mode>,
 }
 
 impl Image {
@@ -55,6 +57,7 @@ impl Image {
             w: width,
             h: height,
             data: data,
+            mode: Cell::new(Mode::Blend),
         })
     }
 
@@ -113,5 +116,9 @@ impl Renderer for Image {
 
     fn sync(&mut self) -> bool {
         true
+    }
+
+    fn mode(&self) -> &Cell<Mode> {
+        &self.mode
     }
 }

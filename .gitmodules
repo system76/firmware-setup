@@ -14,3 +14,7 @@
 	path = uefi_std
 	url = https://gitlab.redox-os.org/redox-os/uefi_std.git
 	branch = master
+[submodule "orbclient"]
+	path = orbclient
+	url = https://gitlab.redox-os.org/redox-os/orbclient.git
+	branch = no_std
