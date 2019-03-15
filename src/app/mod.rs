@@ -1,20 +1,19 @@
 use orbclient::{Color, Renderer};
 use orbfont::Font;
+use std::proto::Protocol;
 use uefi::status::{Error, Result};
 
 use crate::display::{Display, Output};
-use crate::fs::load;
-use crate::image::{self, Image};
+use crate::image;
 use crate::key::key;
-use crate::proto::Protocol;
 
 mod coreboot;
 
 use self::screen::MainScreen;
 mod screen;
 
-static SPLASHBMP: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\splash.bmp");
-static FONTTTF: &'static str = concat!("\\", env!("BASEDIR"), "\\res\\FiraSans-Regular.ttf");
+static SPLASHBMP: &'static [u8] = include_bytes!("../../res/splash.bmp");
+static FONTTTF: &'static [u8] = include_bytes!("../../res/FiraSans-Regular.ttf");
 
 pub fn main() -> Result<()> {
     let mut display = {
@@ -46,29 +45,21 @@ pub fn main() -> Result<()> {
         Display::new(output)
     };
 
-    let mut splash = Image::new(0, 0);
-    {
-        println!("Loading Splash...");
-        if let Ok(data) = load(SPLASHBMP) {
-            if let Ok(image) = image::bmp::parse(&data) {
-                splash = image;
-            }
+    let splash = match image::bmp::parse(SPLASHBMP) {
+        Ok(ok) => ok,
+        Err(err) => {
+            println!("failed to parse splash: {}", err);
+            return Err(Error::NotFound);
         }
-        println!(" Done");
-    }
+    };
 
-    let font;
-    {
-        println!("Loading Font...");
-        match Font::from_data(load(FONTTTF)?) {
-            Ok(ok) => font = ok,
-            Err(err) => {
-                println!("failed to parse font: {}", err);
-                return Err(Error::NotFound);
-            }
+    let font = match Font::from_data(FONTTTF) {
+        Ok(ok) => ok,
+        Err(err) => {
+            println!("failed to parse font: {}", err);
+            return Err(Error::NotFound);
         }
-        println!(" Done");
-    }
+    };
 
     let mut screen = MainScreen::new(0)?;
     loop {

@@ -1,12 +1,12 @@
 use core::{mem, slice};
 use orbclient::{Color, Renderer};
 use orbfont::Font;
+use std::ffi::nstr;
+use std::vars;
 use uefi::status::Result;
 
 use crate::display::Display;
 use crate::key::Key;
-use crate::string::nstr;
-use crate::vars;
 
 use super::{Screen, MainScreen};
 

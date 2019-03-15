@@ -1,6 +1,4 @@
-export BASEDIR?=system76-firmware-setup
-
-BUILD=build/$(BASEDIR)
+BUILD=build
 
 TARGET=x86_64-efi-pe
 
@@ -29,14 +27,12 @@ $(BUILD)/boot.img: $(BUILD)/efi.img
 	dd if=$< of=$@.tmp bs=512 count=98304 seek=2048 conv=notrunc
 	mv $@.tmp $@
 
-$(BUILD)/efi.img: $(BUILD)/boot.efi res/*
+$(BUILD)/efi.img: $(BUILD)/boot.efi
 	dd if=/dev/zero of=$@.tmp bs=512 count=98304
 	mkfs.vfat $@.tmp
 	mmd -i $@.tmp efi
 	mmd -i $@.tmp efi/boot
 	mcopy -i $@.tmp $< ::efi/boot/bootx64.efi
-	mmd -i $@.tmp $(BASEDIR)
-	mcopy -i $@.tmp -s res ::$(BASEDIR)
 	mv $@.tmp $@
 
 $(BUILD)/boot.efi: $(BUILD)/boot.o $(LD)
@@ -66,7 +62,7 @@ $(BUILD)/boot.o: $(BUILD)/boot.a
 	cd $(BUILD)/boot && ar x ../boot.a
 	ld -r $(BUILD)/boot/*.o -o $@
 
-$(BUILD)/boot.a: Cargo.lock Cargo.toml src/* src/*/* src/*/*/*
+$(BUILD)/boot.a: Cargo.lock Cargo.toml res/* src/* src/*/* src/*/*/*
 	mkdir -p $(BUILD)
 	cargo xrustc \
 		--lib \

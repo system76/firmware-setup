@@ -1,14 +1,14 @@
 use core::{char, mem};
 use core::ops::Deref;
 use orbclient::{Color, Renderer};
+use std::proto::Protocol;
 use uefi::Handle;
 use uefi::boot::InterfaceType;
 use uefi::guid::SIMPLE_TEXT_OUTPUT_GUID;
 use uefi::status::{Result, Status};
 use uefi::text::TextOutputMode;
 
-use crate::display::{Display, Output};
-use crate::proto::Protocol;
+use crate::display::{Display, ScaledDisplay, Output};
 
 #[repr(C)]
 #[allow(non_snake_case)]
@@ -29,7 +29,7 @@ pub struct TextDisplay<'a> {
     pub off_y: i32,
     pub cols: usize,
     pub rows: usize,
-    pub display: &'a mut Display,
+    pub display: ScaledDisplay<'a>,
 }
 
 extern "win64" fn reset(_output: &mut TextDisplay, _extra: bool) -> Status {
@@ -106,7 +106,7 @@ impl<'a> TextDisplay<'a> {
             off_y: 0,
             cols: cols,
             rows: rows,
-            display: display,
+            display: ScaledDisplay::new(display),
         }
     }
 

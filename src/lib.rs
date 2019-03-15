@@ -20,24 +20,15 @@ use std::prelude::*;
 
 use core::ops::Try;
 use core::ptr;
-use uefi::reset::ResetType;
 use uefi::status::{Result, Status};
 
-pub mod app;
-pub mod display;
-pub mod exec;
-pub mod fs;
+mod app;
+mod display;
 pub mod image;
-pub mod io;
-pub mod key;
-pub mod loaded_image;
+mod io;
+mod key;
 pub mod null;
-pub mod pointer;
-pub mod proto;
-pub mod shell;
-pub mod string;
 pub mod text;
-pub mod vars;
 
 fn set_max_mode(output: &uefi::text::TextOutput) -> Result<()> {
     let mut max_i = None;
@@ -80,5 +71,5 @@ pub extern "C" fn main() -> Status {
         let _ = io::wait_key();
     }
 
-    (std::system_table().RuntimeServices.ResetSystem)(ResetType::Cold, Status(0), 0, ptr::null())
+    Status(0)
 }
