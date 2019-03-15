@@ -4,8 +4,8 @@ use orbclient::{Color, Renderer};
 use orbfont::Font;
 use uefi::status::Result;
 
-use display::Display;
-use key::Key;
+use crate::display::Display;
+use crate::key::Key;
 
 use super::{Screen, BootScreen, SettingScreen};
 

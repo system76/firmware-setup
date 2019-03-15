@@ -7,7 +7,7 @@ pub struct Stdout;
 
 impl Write for Stdout {
     fn write_str(&mut self, string: &str) -> Result<(), fmt::Error> {
-        let uefi = unsafe { &mut *::UEFI };
+        let uefi = crate::uefi();
 
         for c in string.chars() {
             let _ = (uefi.ConsoleOut.OutputString)(uefi.ConsoleOut, [c as u16, 0].as_ptr());
@@ -25,7 +25,7 @@ pub fn _print(args: fmt::Arguments) {
 }
 
 pub fn wait_key() -> Result<char, status::Error> {
-    let uefi = unsafe { &mut *::UEFI };
+    let uefi = crate::uefi();
 
     let mut index = 0;
     (uefi.BootServices.WaitForEvent)(1, &uefi.ConsoleIn.WaitForKey, &mut index)?;

@@ -1,14 +1,14 @@
 use uefi::Handle;
 use uefi::status::Result;
 
-use fs::load;
-use loaded_image::LoadedImage;
-use proto::Protocol;
-use string::wstr;
+use crate::fs::load;
+use crate::loaded_image::LoadedImage;
+use crate::proto::Protocol;
+use crate::string::wstr;
 
 pub fn exec_data(data: &[u8], name: &str, args: &[&str]) -> Result<usize> {
-    let handle = unsafe { ::HANDLE };
-    let uefi = unsafe { &mut *::UEFI };
+    let handle = unsafe { crate::HANDLE };
+    let uefi = crate::uefi();
 
     let mut image_handle = Handle(0);
     (uefi.BootServices.LoadImage)(false, handle, 0, data.as_ptr(), data.len(), &mut image_handle)?;

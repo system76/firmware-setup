@@ -1,21 +1,19 @@
 use alloc::boxed::Box;
-use alloc::collections::BTreeMap;
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use alloc::vec::Vec;
-use core::{mem, slice, str};
-use coreboot_table::{self, Table, CmosRecord};
+use core::{mem, slice};
 use orbclient::{Color, Renderer};
 use orbfont::Font;
-use uefi::status::{Error, Result};
+use uefi::status::Result;
 
-use display::Display;
-use key::Key;
-use string::nstr;
-use vars;
+use crate::display::Display;
+use crate::key::Key;
+use crate::string::nstr;
+use crate::vars;
 
 use super::{Screen, MainScreen};
-use super::super::coreboot::IdentityMapper;
 
+#[allow(non_snake_case)]
 #[derive(Copy, Clone, Debug)]
 #[repr(packed)]
 pub struct LoadOption {
@@ -33,7 +31,7 @@ impl LoadOption {
             }
             len += 1;
         }
-        unsafe { slice::from_raw_parts(ptr, len) }
+        slice::from_raw_parts(ptr, len)
     }
 }
 

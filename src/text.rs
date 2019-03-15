@@ -8,8 +8,8 @@ use uefi::guid::SIMPLE_TEXT_OUTPUT_GUID;
 use uefi::status::{Result, Status};
 use uefi::text::TextOutputMode;
 
-use display::{Display, Output};
-use proto::Protocol;
+use crate::display::{Display, Output};
+use crate::proto::Protocol;
 
 #[repr(C)]
 #[allow(non_snake_case)]
@@ -136,7 +136,7 @@ impl<'a> TextDisplay<'a> {
             unsafe {
                 let scale = self.display.scale() as isize;
                 let data_ptr = self.display.data_mut().as_mut_ptr() as *mut u32;
-                ::display::fast_copy(
+                crate::display::fast_copy(
                     data_ptr.offset(dst as isize * scale * scale) as *mut u8,
                     data_ptr.offset(src as isize * scale * scale) as *const u8,
                     len * (scale * scale) as usize * 4);
@@ -216,7 +216,7 @@ impl<'a> TextDisplay<'a> {
     }
 
     pub fn pipe<T, F: FnMut() -> Result<T>>(&mut self, mut f: F) -> Result<T> {
-        let uefi = unsafe { &mut *::UEFI };
+        let uefi = unsafe { crate::uefi_mut() };
 
         let stdout = self as *mut _;
         let mut stdout_handle = Handle(0);

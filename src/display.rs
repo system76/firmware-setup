@@ -5,7 +5,7 @@ use orbclient::{Color, Renderer};
 use uefi::graphics::{GraphicsOutput, GraphicsBltOp, GraphicsBltPixel};
 use uefi::guid::{Guid, GRAPHICS_OUTPUT_PROTOCOL_GUID};
 
-use proto::Protocol;
+use crate::proto::Protocol;
 
 pub struct Output(pub &'static mut GraphicsOutput);
 

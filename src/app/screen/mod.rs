@@ -2,8 +2,8 @@ use alloc::boxed::Box;
 use orbfont::Font;
 use uefi::status::Result;
 
-use display::Display;
-use key::Key;
+use crate::display::Display;
+use crate::key::Key;
 
 pub use self::boot::BootScreen;
 mod boot;

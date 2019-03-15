@@ -35,7 +35,7 @@ pub enum Key {
 }
 
 pub fn key() -> Result<Key> {
-    let uefi = unsafe { &mut *::UEFI };
+    let uefi = crate::uefi();
 
     let mut index = 0;
     (uefi.BootServices.WaitForEvent)(1, &uefi.ConsoleIn.WaitForKey, &mut index)?;

@@ -29,6 +29,14 @@ static ALLOCATOR: uefi_alloc::Allocator = uefi_alloc::Allocator;
 pub static mut HANDLE: uefi::Handle = uefi::Handle(0);
 pub static mut UEFI: *mut uefi::system::SystemTable = 0 as *mut uefi::system::SystemTable;
 
+pub fn uefi() -> &'static uefi::system::SystemTable {
+    unsafe { & *UEFI }
+}
+
+pub unsafe fn uefi_mut() -> &'static mut uefi::system::SystemTable {
+    &mut *UEFI
+}
+
 #[macro_use]
 mod macros;
 
@@ -52,7 +60,7 @@ pub mod string;
 pub mod text;
 pub mod vars;
 
-fn set_max_mode(output: &mut uefi::text::TextOutput) -> Result<()> {
+fn set_max_mode(output: &uefi::text::TextOutput) -> Result<()> {
     let mut max_i = None;
     let mut max_w = 0;
     let mut max_h = 0;
@@ -77,7 +85,7 @@ fn set_max_mode(output: &mut uefi::text::TextOutput) -> Result<()> {
 }
 
 fn main() {
-    let uefi = unsafe { &mut *::UEFI };
+    let uefi = crate::uefi();
 
     let _ = (uefi.BootServices.SetWatchdogTimer)(0, 0, 0, ptr::null());
 
@@ -92,7 +100,5 @@ fn main() {
         let _ = io::wait_key();
     }
 
-    unsafe {
-        ((&mut *::UEFI).RuntimeServices.ResetSystem)(ResetType::Cold, Status(0), 0, ptr::null());
-    }
+    (crate::uefi().RuntimeServices.ResetSystem)(ResetType::Cold, Status(0), 0, ptr::null());
 }

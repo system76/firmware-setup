@@ -11,7 +11,7 @@ pub trait Protocol<T: 'static> {
     fn new(fs: &'static mut T) -> Self where Self: Sized;
 
     fn locate_protocol() -> Result<Self> where Self: Sized {
-        let uefi = unsafe { &mut *::UEFI };
+        let uefi = crate::uefi();
 
         let guid = Self::guid();
         let mut interface = 0;
@@ -21,7 +21,7 @@ pub trait Protocol<T: 'static> {
     }
 
     fn handle_protocol(handle: Handle) -> Result<Self> where Self: Sized {
-        let uefi = unsafe { &mut *::UEFI };
+        let uefi = crate::uefi();
 
         let guid = Self::guid();
         let mut interface = 0;
@@ -31,7 +31,7 @@ pub trait Protocol<T: 'static> {
     }
 
     fn locate_handle() -> Result<Vec<Self>> where Self: Sized {
-        let uefi = unsafe { &mut *::UEFI };
+        let uefi = crate::uefi();
 
         let guid = Self::guid();
         let mut handles = Vec::with_capacity(256);

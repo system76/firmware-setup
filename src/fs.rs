@@ -4,8 +4,8 @@ use uefi::fs::{File as InnerFile, FileInfo, SimpleFileSystem, FILE_MODE_READ};
 use uefi::guid::{Guid, FILE_INFO_ID, FILE_SYSTEM_GUID};
 use uefi::status::{Error, Result};
 
-use proto::Protocol;
-use string::wstr;
+use crate::proto::Protocol;
+use crate::string::wstr;
 
 pub struct FileSystem(pub &'static mut SimpleFileSystem);
 

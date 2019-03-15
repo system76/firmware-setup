@@ -94,7 +94,7 @@ impl NullDisplay {
     }
 
     pub fn pipe<T, F: FnMut() -> Result<T>>(&mut self, mut f: F) -> Result<T> {
-        let uefi = unsafe { &mut *::UEFI };
+        let uefi = unsafe { crate::uefi_mut() };
 
         let stdout = self as *mut _;
         let mut stdout_handle = Handle(0);

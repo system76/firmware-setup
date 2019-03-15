@@ -3,10 +3,10 @@ use core::ptr;
 use uefi::guid::GLOBAL_VARIABLE_GUID;
 use uefi::status::{Error, Result};
 
-use string::wstr;
+use crate::string::wstr;
 
 fn get(name: &str, data: &mut [u8]) -> Result<usize> {
-    let uefi = unsafe { &mut *::UEFI };
+    let uefi = crate::uefi();
 
     let wname = wstr(name);
     let mut data_size = data.len();
@@ -15,7 +15,7 @@ fn get(name: &str, data: &mut [u8]) -> Result<usize> {
 }
 
 fn set(name: &str, data: &[u8]) -> Result<usize> {
-    let uefi = unsafe { &mut *::UEFI };
+    let uefi = crate::uefi();
 
     let wname = wstr(name);
     let access = 1 | 2 | 4;

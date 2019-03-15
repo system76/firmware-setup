@@ -2,11 +2,11 @@ use orbclient::{Color, Renderer};
 use orbfont::Font;
 use uefi::status::{Error, Result};
 
-use display::{Display, Output};
-use fs::load;
-use image::{self, Image};
-use key::key;
-use proto::Protocol;
+use crate::display::{Display, Output};
+use crate::fs::load;
+use crate::image::{self, Image};
+use crate::key::key;
+use crate::proto::Protocol;
 
 mod coreboot;
 
