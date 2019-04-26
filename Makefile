@@ -1,10 +1,8 @@
-BUILD=build
+TARGET?=x86_64-efi-pe
 
-TARGET=x86_64-efi-pe
-
-PREFIX=$(CURDIR)/prefix
-export LD=$(PREFIX)/bin/$(TARGET)-ld
+export LD=ld
 export RUST_TARGET_PATH=$(CURDIR)/targets
+BUILD=build/$(TARGET)
 
 all: $(BUILD)/boot.img
 
@@ -17,7 +15,8 @@ update:
 	cargo update
 
 qemu: $(BUILD)/boot.img
-	kvm -M q35 -m 1024 -net none -vga std -bios res/coreboot.rom $<
+	kvm -M q35 -m 1024 -net none -vga std -bios /usr/share/OVMF/OVMF_CODE.fd $< \
+	-chardev stdio,id=debug -device isa-debugcon,iobase=0x402,chardev=debug
 
 $(BUILD)/boot.img: $(BUILD)/efi.img
 	dd if=/dev/zero of=$@.tmp bs=512 count=100352
@@ -32,11 +31,14 @@ $(BUILD)/efi.img: $(BUILD)/boot.efi
 	mkfs.vfat $@.tmp
 	mmd -i $@.tmp efi
 	mmd -i $@.tmp efi/boot
-	mcopy -i $@.tmp $< ::efi/boot/bootx64.efi
+	mcopy -i $@.tmp $< ::driver.efi
+	mcopy -i $@.tmp res/shell.efi ::efi/boot/bootx64.efi
+	mcopy -i $@.tmp res/startup.nsh ::startup.nsh
 	mv $@.tmp $@
 
-$(BUILD)/boot.efi: $(BUILD)/boot.o $(LD)
+$(BUILD)/boot.efi: $(BUILD)/boot.o
 	$(LD) \
+		-m i386pep \
 		--oformat pei-x86-64 \
 		--dll \
 		--image-base 0 \
@@ -48,13 +50,14 @@ $(BUILD)/boot.efi: $(BUILD)/boot.o $(LD)
 		--minor-image-version 0 \
 		--major-subsystem-version 0 \
 		--minor-subsystem-version 0 \
-		--subsystem 10 \
+		--subsystem 11 \
 		--heap 0,0 \
 		--stack 0,0 \
 		--pic-executable \
 		--entry _start \
 		--no-insert-timestamp \
 		$< -o $@
+		#--subsystem 10
 
 $(BUILD)/boot.o: $(BUILD)/boot.a
 	rm -rf $(BUILD)/boot
@@ -62,7 +65,7 @@ $(BUILD)/boot.o: $(BUILD)/boot.a
 	cd $(BUILD)/boot && ar x ../boot.a
 	ld -r $(BUILD)/boot/*.o -o $@
 
-$(BUILD)/boot.a: Cargo.lock Cargo.toml res/* src/* src/*/* src/*/*/*
+$(BUILD)/boot.a: Cargo.lock Cargo.toml res/* src/* src/*/*
 	mkdir -p $(BUILD)
 	cargo xrustc \
 		--lib \

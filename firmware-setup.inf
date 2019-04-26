@@ -1,0 +1,18 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = system76-firmware-setup
+  FILE_GUID                      = 76ff62c9-7915-4e98-b964-154524023fa7
+  MODULE_TYPE                    = UEFI_DRIVER
+  VERSION_STRING                 = 1.0
+
+  #
+  # The following information is for reference only and not required by the build tools.
+  #
+  #  VALID_ARCHITECTURES           = IA32 X64 IPF EBC
+  #
+
+  VALID_ARCHITECTURES           = X64
+
+[Binaries.X64]
+  PE32|build/x86_64-efi-pe/boot.efi|*
+

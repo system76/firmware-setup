@@ -11,10 +11,12 @@ crate-type = ["staticlib"]
 [dependencies]
 coreboot-table = { git = "https://gitlab.redox-os.org/redox-os/coreboot-table.git" }
 ecflash = { git = "https://github.com/system76/ecflash.git" }
+memoffset = "0.3"
 orbclient = { version = "0.3.21", features = ["no_std"] }
 orbfont = { path = "orbfont", features = ["no_std"] }
 plain = "0.2.3"
 redox_dmi = "0.1.1"
+redox_hwio = "0.1.0"
 redox_uefi = "0.1.0"
 redox_uefi_std = "0.1.0"
 #x86 = "0.7"

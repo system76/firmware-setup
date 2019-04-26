@@ -34,6 +34,43 @@ pub enum Key {
     Scancode(u16),
 }
 
+impl From<TextInputKey> for Key {
+    fn from(raw_key: TextInputKey) -> Self {
+        match raw_key.ScanCode {
+            0 => match unsafe { char::from_u32_unchecked(raw_key.UnicodeChar as u32) } {
+                '\u{8}' => Key::Backspace,
+                '\t' => Key::Tab,
+                '\r' => Key::Enter,
+                c => Key::Character(c),
+            },
+            1 => Key::Up,
+            2 => Key::Down,
+            3 => Key::Right,
+            4 => Key::Left,
+            5 => Key::Home,
+            6 => Key::End,
+            7 => Key::Insert,
+            8 => Key::Delete,
+            9 => Key::PageUp,
+            10 => Key::PageDown,
+            11 => Key::F1,
+            12 => Key::F2,
+            13 => Key::F3,
+            14 => Key::F4,
+            15 => Key::F5,
+            16 => Key::F6,
+            17 => Key::F7,
+            18 => Key::F8,
+            19 => Key::F9,
+            20 => Key::F10,
+            21 => Key::F11,
+            22 => Key::F12,
+            23 => Key::Escape,
+            scancode => Key::Scancode(scancode),
+        }
+    }
+}
+
 pub fn raw_key() -> Result<TextInputKey> {
     let uefi = std::system_table();
 
@@ -52,36 +89,5 @@ pub fn raw_key() -> Result<TextInputKey> {
 
 pub fn key() -> Result<Key> {
     let raw_key = raw_key()?;
-    Ok(match raw_key.ScanCode {
-        0 => match unsafe { char::from_u32_unchecked(raw_key.UnicodeChar as u32) } {
-            '\u{8}' => Key::Backspace,
-            '\t' => Key::Tab,
-            '\r' => Key::Enter,
-            c => Key::Character(c),
-        },
-        1 => Key::Up,
-        2 => Key::Down,
-        3 => Key::Right,
-        4 => Key::Left,
-        5 => Key::Home,
-        6 => Key::End,
-        7 => Key::Insert,
-        8 => Key::Delete,
-        9 => Key::PageUp,
-        10 => Key::PageDown,
-        11 => Key::F1,
-        12 => Key::F2,
-        13 => Key::F3,
-        14 => Key::F4,
-        15 => Key::F5,
-        16 => Key::F6,
-        17 => Key::F7,
-        18 => Key::F8,
-        19 => Key::F9,
-        20 => Key::F10,
-        21 => Key::F11,
-        22 => Key::F12,
-        23 => Key::Escape,
-        scancode => Key::Scancode(scancode),
-    })
+    Ok(Key::from(raw_key))
 }
