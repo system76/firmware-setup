@@ -62,10 +62,32 @@ fn set_max_mode(output: &uefi::text::TextOutput) -> Result<()> {
 use hwio::{Io, Pio};
 use std::mem;
 use uefi::hii::database::HiiHandle;
-use uefi::hii::ifr::IfrOpHeader;
+use uefi::hii::ifr::{IfrOpCode, IfrOpHeader};
 use uefi::hii::package::{HiiPackageHeader, HiiPackageKind, HiiPackageListHeader};
 use uefi::reset::ResetType;
 use uefi::status::Error;
+
+// The IfrOpCode's we need to handle so far:
+// Action
+// DefaultStore
+// End
+// Form
+// FormSet
+// Guid
+// OneOf
+// OneOfOption
+// Ref
+// Subtitle
+
+fn dump_form(form: &IfrOpHeader) {
+    debugln!(
+        "    Form: OpCode {:#x} {:?}, Length {}, Scope {}",
+        form.OpCode as u8,
+        form.OpCode,
+        form.Length(),
+        form.Scope()
+    );
+}
 
 fn dump_forms(data: &[u8]) {
     let mut i = 0;
@@ -74,13 +96,7 @@ fn dump_forms(data: &[u8]) {
             & *(data.as_ptr().add(i) as *const IfrOpHeader)
         };
 
-        debugln!(
-            "      Form: OpCode {:#x} {:?}, Length {}, Scope {}",
-            form.OpCode as u8,
-            form.OpCode,
-            form.Length(),
-            form.Scope()
-        );
+        dump_form(form);
 
         i += form.Length() as usize;
     }
@@ -88,7 +104,7 @@ fn dump_forms(data: &[u8]) {
 
 fn dump_package(package: &HiiPackageHeader) {
     debugln!(
-        "    Package: Kind {:#x} {:?}, Length {}",
+        "  Package: Kind {:#x} {:?}, Length {}",
         package.Kind() as u8,
         package.Kind(),
         package.Length()
@@ -103,7 +119,7 @@ fn dump_package(package: &HiiPackageHeader) {
 
 fn dump_package_list(package_list: &HiiPackageListHeader) {
     debugln!(
-        "  Package List: Guid {}, Length {}",
+        "Package List: Guid {}, Length {}",
         package_list.PackageListGuid,
         package_list.PackageLength
     );
@@ -120,8 +136,6 @@ fn dump_package_list(package_list: &HiiPackageListHeader) {
 }
 
 fn dump_package_lists(data: &[u8]) {
-    debugln!("Package Lists: {}", data.len());
-
     let mut i = 0;
     while i + mem::size_of::<HiiPackageListHeader>() < data.len() {
         let package_list = unsafe {
