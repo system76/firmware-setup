@@ -1,10 +1,8 @@
-BUILD=build
+TARGET?=x86_64-efi-pe
 
-TARGET=x86_64-efi-pe
-
-PREFIX=$(CURDIR)/prefix
-export LD=$(PREFIX)/bin/$(TARGET)-ld
+export LD=ld
 export RUST_TARGET_PATH=$(CURDIR)/targets
+BUILD=build/$(TARGET)
 
 all: $(BUILD)/boot.img
 
@@ -17,7 +15,8 @@ update:
 	cargo update
 
 qemu: $(BUILD)/boot.img
-	kvm -M q35 -m 1024 -net none -vga std -bios res/coreboot.rom $<
+	kvm -M q35 -m 1024 -net none -vga std -bios res/coreboot.rom $< \
+	-chardev stdio,id=debug -device isa-debugcon,iobase=0x402,chardev=debug
 
 $(BUILD)/boot.img: $(BUILD)/efi.img
 	dd if=/dev/zero of=$@.tmp bs=512 count=100352
@@ -35,8 +34,9 @@ $(BUILD)/efi.img: $(BUILD)/boot.efi
 	mcopy -i $@.tmp $< ::efi/boot/bootx64.efi
 	mv $@.tmp $@
 
-$(BUILD)/boot.efi: $(BUILD)/boot.o $(LD)
+$(BUILD)/boot.efi: $(BUILD)/boot.o
 	$(LD) \
+		-m i386pep \
 		--oformat pei-x86-64 \
 		--dll \
 		--image-base 0 \

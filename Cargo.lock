@@ -76,6 +76,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "redox_hwio"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "redox_uefi"
 version = "0.1.0"
 
@@ -125,6 +130,7 @@ dependencies = [
  "orbfont 0.1.9",
  "plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_dmi 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "redox_hwio 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_uefi 0.1.0",
  "redox_uefi_std 0.1.0",
 ]
@@ -140,5 +146,6 @@ dependencies = [
 "checksum ordered-float 1.0.1 (git+https://github.com/cbiffle/rust-ordered-float.git?branch=no-std)" = "<none>"
 "checksum plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 "checksum redox_dmi 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4f00f61bcf7b6946ecd3e65f5871fb6b689680e59513eaa9a4d020bb73aa7fb7"
+"checksum redox_hwio 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9c5c3085fd5054b1f2ad35668f7c60031e6a7cb05d82477f936ac700d24d4477"
 "checksum rusttype 0.7.5 (git+https://gitlab.redox-os.org/redox-os/rusttype.git?branch=no_std)" = "<none>"
 "checksum stb_truetype 0.2.6 (git+https://gitlab.redox-os.org/redox-os/stb_truetype-rs.git?branch=no_std)" = "<none>"
