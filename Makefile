@@ -31,7 +31,8 @@ $(BUILD)/efi.img: $(BUILD)/boot.efi
 	mkfs.vfat $@.tmp
 	mmd -i $@.tmp efi
 	mmd -i $@.tmp efi/boot
-	mcopy -i $@.tmp $< ::efi/boot/bootx64.efi
+	mcopy -i $@.tmp $< ::boot.efi
+	mcopy -i $@.tmp startup.nsh ::startup.nsh
 	mv $@.tmp $@
 
 $(BUILD)/boot.efi: $(BUILD)/boot.o
@@ -48,13 +49,14 @@ $(BUILD)/boot.efi: $(BUILD)/boot.o
 		--minor-image-version 0 \
 		--major-subsystem-version 0 \
 		--minor-subsystem-version 0 \
-		--subsystem 10 \
+		--subsystem 11 \
 		--heap 0,0 \
 		--stack 0,0 \
 		--pic-executable \
 		--entry _start \
 		--no-insert-timestamp \
 		$< -o $@
+		#--subsystem 10
 
 $(BUILD)/boot.o: $(BUILD)/boot.a
 	rm -rf $(BUILD)/boot
