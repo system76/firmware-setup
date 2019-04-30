@@ -492,7 +492,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
         display.set(background_color);
 
-        let font_size = (display_h as f32) / 26.0;
+        let title_font_size = 40.0;
+        let font_size = 32.0; // (display_h as f32) / 26.0
 
         let draw_pretty_box = |display: &mut ScaledDisplay, x: i32, y: i32, w: u32, h: u32, highlighted: bool| {
             let checkbox = if highlighted {
@@ -622,17 +623,26 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             rendered.draw(display, x, y, white);
         };
 
-        let mut y = 0;
+        let mut y = margin_tb;
 
         if editing {
             if let Some(element) = elements.get(selected) {
                 {
                     // TODO: Do not render in drawing loop
-                    let rendered = font.render(&element.prompt, font_size);
+                    let rendered = font.render(&element.prompt, title_font_size);
                     let x = (display_w as i32 - rendered.width() as i32) / 2;
                     draw_rendered(&mut display, x, y, &rendered, false);
-                    y += rendered.height() as i32 + 8;
+                    y += rendered.height() as i32 + margin_tb;
                 }
+
+                display.rect(
+                    0,
+                    y,
+                    display_w,
+                    1,
+                    Color::rgb(0xac, 0xac, 0xac)
+                );
+                y += margin_tb * 2;
 
                 if element.options.is_empty() {
                     // TODO: Do not render in drawing loop
@@ -657,11 +667,20 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
         } else {
             if let Some(ref title) = title_opt {
                 // TODO: Do not render in drawing loop
-                let rendered = font.render(&title, font_size);
+                let rendered = font.render(&title, title_font_size);
                 let x = (display_w as i32 - rendered.width() as i32) / 2;
                 draw_rendered(&mut display, x, y, &rendered, false);
                 y += rendered.height() as i32 + margin_tb;
             }
+
+            display.rect(
+                0,
+                y,
+                display_w,
+                1,
+                Color::rgb(0xac, 0xac, 0xac)
+            );
+            y += margin_tb * 2;
 
             for (i, element) in elements.iter().enumerate() {
                 let h = {
