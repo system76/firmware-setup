@@ -31,8 +31,9 @@ $(BUILD)/efi.img: $(BUILD)/boot.efi
 	mkfs.vfat $@.tmp
 	mmd -i $@.tmp efi
 	mmd -i $@.tmp efi/boot
-	mcopy -i $@.tmp $< ::boot.efi
-	mcopy -i $@.tmp startup.nsh ::startup.nsh
+	mcopy -i $@.tmp $< ::driver.efi
+	mcopy -i $@.tmp res/shell.efi ::efi/boot/bootx64.efi
+	mcopy -i $@.tmp res/startup.nsh ::startup.nsh
 	mv $@.tmp $@
 
 $(BUILD)/boot.efi: $(BUILD)/boot.o

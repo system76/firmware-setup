@@ -13,7 +13,7 @@ use self::screen::MainScreen;
 mod screen;
 
 static SPLASHBMP: &'static [u8] = include_bytes!("../../res/splash.bmp");
-static FONTTTF: &'static [u8] = include_bytes!("../../res/FiraSans-Regular.ttf");
+pub static FONTTTF: &'static [u8] = include_bytes!("../../res/FiraSans-Regular.ttf");
 
 pub fn main() -> Result<()> {
     let mut display = {

@@ -1,4 +1,6 @@
-use std::char;
+use orbclient::{Color, Renderer};
+use orbfont::{Font, Text};
+use std::{char, cmp, mem, ptr};
 use std::ops::Try;
 use std::proto::Protocol;
 use uefi::{Event, Handle};
@@ -6,11 +8,16 @@ use uefi::boot::InterfaceType;
 use uefi::guid::Guid;
 use uefi::hii::{AnimationId, FormId, ImageId, QuestionId, StringId};
 use uefi::hii::database::HiiHandle;
-use uefi::hii::ifr::{HiiValue, IfrOpCode, IfrOpHeader, IfrAction, IfrOneOfOption};
-use uefi::status::{Result, Status};
+use uefi::hii::ifr::{
+    HiiDate, HiiRef, HiiTime, HiiValue,
+    IfrOpCode, IfrOpHeader, IfrTypeKind, IfrTypeValue, IfrTypeValueEnum,
+    IfrAction, IfrCheckbox, IfrNumeric, IfrOneOf, IfrOneOfOption, IfrRef, IfrSubtitle
+};
+use uefi::status::{Error, Result, Status};
 use uefi::text::TextInputKey;
 
-use crate::io;
+use crate::display::{Display, Output, ScaledDisplay};
+use crate::key::{key, Key};
 
 // TODO: Move to uefi library {
 pub const HII_STRING_PROTOCOL_GUID: Guid = Guid(0xfd96974, 0x23aa, 0x4cdc, [0xb9, 0xcb, 0x98, 0xd1, 0x77, 0x50, 0x32, 0x2a]);
@@ -179,11 +186,21 @@ impl<T> ListHead<T> {
 pub struct QuestionOption {
     pub Signature: usize,
     pub Link: ListEntry<QuestionOption>,
-    pub OptionOpCode: *const IfrOneOfOption,
+    pub OptionOpCodePtr: *const IfrOneOfOption,
     pub ImageId: ImageId,
     pub AnimationId: AnimationId,
 }
 list_entry!(QuestionOption, Link);
+
+impl QuestionOption {
+    pub fn OptionOpCode(&self) -> Option<&IfrOneOfOption> {
+        if self.OptionOpCodePtr.is_null() {
+            None
+        } else {
+            Some(unsafe { &*self.OptionOpCodePtr })
+        }
+    }
+}
 
 #[repr(C)]
 pub struct StatementErrorInfo {
@@ -275,7 +292,7 @@ pub struct Form {
 
 #[repr(C)]
 pub struct UserInput {
-    pub SelectedStatement: Statement,
+    pub SelectedStatement: *const Statement,
     pub InputValue: HiiValue,
     pub Action: u32,
     pub DefaultId: u16,
@@ -289,8 +306,37 @@ pub struct Fde {
     pub ConfirmDataChange: extern "win64" fn() -> usize,
 }
 
+static mut DISPLAY: *mut Display = ptr::null_mut();
+static mut FONT: *const Font = ptr::null_mut();
+
+struct ElementOption {
+    option_ptr: *const QuestionOption,
+    prompt: String,
+    value: IfrTypeValueEnum,
+}
+
+struct Element {
+    statement_ptr: *const Statement,
+    prompt: String,
+    value: IfrTypeValueEnum,
+    options: Vec<ElementOption>,
+    selectable: bool,
+    editable: bool,
+}
+
 fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
+    debugln!();
     debugln!("form_display");
+    debugln!("FORM_DISPLAY_ENGINE_FORM {}", mem::size_of_val(form));
+    debugln!("EFI_HII_VALUE {}",  mem::size_of_val(user_input));
+    debugln!("HII_VALUE {}", mem::size_of::<HiiValue>());
+    debugln!("EFI_IFR_TYPE_VALUE {}", mem::size_of::<IfrTypeValue>());
+    debugln!("EFI_GUID {}", mem::size_of::<Guid>());
+    debugln!("EFI_HII_TIME {}", mem::size_of::<HiiTime>());
+    debugln!("EFI_HII_DATE {}", mem::size_of::<HiiDate>());
+    debugln!("EFI_HII_REF {}", mem::size_of::<HiiRef>());
+    debugln!("EFI_IFR_CHECKBOX {}", mem::size_of::<IfrCheckbox>());
+    debugln!("EFI_IFR_SUBTITLE {}", mem::size_of::<IfrSubtitle>());
 
     let hii_string = <&'static mut HiiStringProtocol>::one()?;
 
@@ -298,31 +344,288 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
          hii_string.string(form.HiiHandle, string_id)
     };
 
-    debugln!("title id: {:?}", form.FormTitle);
-    debugln!("title: {:?}", string(form.FormTitle));
-    debugln!("highlighted: {:?}", form.HighlightedStatement);
-
+    let mut selected = !0;
+    let mut editing = false;
+    let mut elements = Vec::new();
     for statement in form.StatementListHead.iter() {
-        debugln!("statement: {:p}", statement as *const _);
-        if let Some(op) = statement.OpCode() {
-            match op.OpCode {
-                IfrOpCode::Action => {
-                    let action = unsafe { &*(op as *const _ as *const IfrAction) };
-                    debugln!("  {:?}", action);
-                    debugln!(
-                        "  {:?}, {:?}",
-                        string(action.QuestionHeader.Header.Prompt),
-                        string(action.QuestionHeader.Header.Help)
-                    );
-                },
-                _ => {
-                    debugln!("  {:?}", op);
+        let statement_ptr = statement as *const _;
+        debugln!("statement: {:p}", statement_ptr);
+
+        let mut options = Vec::new();
+        for option in statement.OptionListHead.iter() {
+            let option_ptr = option as *const _;
+            debugln!("  option: {:p}", option_ptr);
+            if let Some(op) = option.OptionOpCode() {
+                let value = unsafe {
+                    op.Value.to_enum(op.Kind)
+                };
+                debugln!("    {:?}: {:?}", op.Option, value);
+                if let Ok(prompt) = string(op.Option) {
+                    options.push(ElementOption {
+                        option_ptr,
+                        prompt,
+                        value,
+                    });
                 }
+            }
+        }
+
+        let mut add_element = |string_id: StringId, selectable: bool, editable: bool| {
+            let value = unsafe {
+                statement.CurrentValue.Value.to_enum(statement.CurrentValue.Kind)
+            };
+            debugln!("    {:?}: {:?}", string_id, value);
+            if let Ok(prompt) = string(string_id) {
+                if statement_ptr == form.HighlightedStatement || (selected == !0 && selectable) {
+                    selected = elements.len();
+                }
+                elements.push(Element {
+                    statement_ptr,
+                    prompt,
+                    options,
+                    selectable,
+                    editable,
+                    value,
+                });
+            }
+        };
+
+        if let Some(op) = statement.OpCode() {
+            debugln!("  {:?}", op);
+            match op.OpCode {
+                IfrOpCode::Action => if let Some(action) = unsafe { op.cast::<IfrAction>() } {
+                    add_element(action.QuestionHeader.Header.Prompt, true, false);
+                },
+                IfrOpCode::Checkbox => if let Some(checkbox) = unsafe { op.cast::<IfrCheckbox>() } {
+                    add_element(checkbox.Question.Header.Prompt, true, true);
+                },
+                IfrOpCode::Numeric => if let Some(numeric) = unsafe { op.cast::<IfrNumeric>() } {
+                    add_element(numeric.Question.Header.Prompt, true, true);
+                },
+                IfrOpCode::OneOf => if let Some(one_of) = unsafe { op.cast::<IfrOneOf>() } {
+                    add_element(one_of.Question.Header.Prompt, true, true);
+                },
+                IfrOpCode::Ref => if let Some(ref_) = unsafe { op.cast::<IfrRef>() } {
+                    add_element(ref_.Question.Header.Prompt, true, false);
+                },
+                IfrOpCode::Subtitle => if let Some(subtitle) = unsafe { op.cast::<IfrSubtitle>() } {
+                    add_element(subtitle.Statement.Prompt, false, false);
+                },
+                _ => ()
             }
         }
     }
 
-    io::wait_key()?;
+    let mut display = unsafe {
+        if DISPLAY.is_null() {
+            let display = Display::new(Output::one()?);
+            DISPLAY = Box::into_raw(Box::new(display));
+        }
+        ScaledDisplay::new(&mut *DISPLAY)
+    };
+
+    let font = unsafe {
+        if FONT.is_null() {
+            let font = match Font::from_data(crate::app::FONTTTF) {
+                Ok(ok) => ok,
+                Err(err) => {
+                    println!("failed to parse font: {}", err);
+                    return Err(Error::NotFound);
+                }
+            };
+            FONT = Box::into_raw(Box::new(font));
+        }
+        &*FONT
+    };
+
+    let title_opt = string(form.FormTitle).ok();
+    'display: loop {
+        let (display_w, display_h) = (display.width(), display.height());
+
+        display.clear();
+
+        let font_size = (display_h as f32) / 26.0;
+
+        let black = Color::rgb(0x00, 0x00, 0x00);
+        let white = Color::rgb(0xFF, 0xFF, 0xFF);
+
+        let mut draw_rendered = |x: i32, y: i32, rendered: &Text, highlighted: bool| {
+            let (fg, bg) = if highlighted {
+                (black, white)
+            } else {
+                (white, black)
+            };
+            display.rect(x, y, rendered.width(), rendered.height(), bg);
+            rendered.draw(&mut display, x, y, fg);
+        };
+
+        let mut y = 0;
+
+        if editing {
+            if let Some(element) = elements.get(selected) {
+                {
+                    // TODO: Do not render in drawing loop
+                    let rendered = font.render(&element.prompt, font_size);
+                    let x = (display_w as i32 - rendered.width() as i32) / 2;
+                    draw_rendered(x, y, &rendered, false);
+                    y += rendered.height() as i32;
+                }
+
+                for option in element.options.iter() {
+                    let h = {
+                        // TODO: Do not render in drawing loop
+                        let rendered = font.render(&option.prompt, font_size);
+                        draw_rendered(16, y, &rendered, option.value == element.value);
+                        rendered.height() as i32
+                    };
+
+                    y += h;
+                }
+            } else {
+                editing = false;
+                continue 'display;
+            }
+        } else {
+            if let Some(ref title) = title_opt {
+                // TODO: Do not render in drawing loop
+                let rendered = font.render(&title, font_size);
+                let x = (display_w as i32 - rendered.width() as i32) / 2;
+                draw_rendered(x, y, &rendered, false);
+                y += rendered.height() as i32;
+            }
+
+            for (i, element) in elements.iter().enumerate() {
+                let h = {
+                    // TODO: Do not render in drawing loop
+                    let rendered = font.render(&element.prompt, font_size);
+                    draw_rendered(16, y, &rendered, i == selected);
+                    rendered.height() as i32
+                };
+
+                if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
+                    // TODO: Do not render in drawing loop
+                    let rendered = font.render(&option.prompt, font_size);
+                    draw_rendered(display_w as i32 / 2, y, &rendered, false);
+                } else if element.editable {
+                    // TODO: Do not render in drawing loop
+                    let rendered = font.render(&format!("{:?}", element.value), font_size);
+                    draw_rendered(display_w as i32 / 2, y, &rendered, false);
+                }
+
+                y += h;
+            }
+        }
+
+        display.sync();
+
+        match key()? {
+            Key::Enter => {
+                debugln!("enter");
+                if let Some(element) = elements.get(selected) {
+                    if element.editable && ! editing {
+                        editing = true;
+                    } else {
+                        user_input.SelectedStatement = element.statement_ptr;
+                        if editing {
+                            let (kind, value) = unsafe { element.value.to_union() };
+                            user_input.InputValue.Kind = kind;
+                            user_input.InputValue.Value = value;
+                            editing = false;
+                        } else {
+                            unsafe {
+                                ptr::copy(
+                                    &(*element.statement_ptr).CurrentValue,
+                                    &mut user_input.InputValue,
+                                    1
+                                );
+                            }
+                        }
+                        break 'display;
+                    }
+                }
+            },
+            Key::Escape => {
+                debugln!("escape");
+                if editing {
+                    editing = false;
+                } else {
+                    user_input.Action = (1 << 17);
+                    break 'display;
+                }
+            },
+            Key::Down => {
+                debugln!("down");
+                if editing {
+                    if let Some(mut element) = elements.get_mut(selected) {
+                        let i_opt = element.options.iter().position(|o| o.value == element.value);
+                        if let Some(mut i) = i_opt {
+                            if i + 1 < element.options.len() {
+                                i += 1;
+                            } else {
+                                i = 0;
+                            }
+                            element.value = element.options[i].value;
+                        }
+                    }
+                } else if selected != !0 {
+                    let start = selected;
+                    loop {
+                        if selected + 1 < elements.len() {
+                            selected += 1;
+                        } else {
+                            selected = 0;
+                        }
+                        if let Some(element) = elements.get(selected) {
+                            if element.selectable {
+                                break;
+                            }
+                        }
+                        if selected == start {
+                            break;
+                        }
+                    }
+                }
+            },
+            Key::Up => {
+                debugln!("up");
+                if editing {
+                    if let Some(mut element) = elements.get_mut(selected) {
+                        let i_opt = element.options.iter().position(|o| o.value == element.value);
+                        if let Some(mut i) = i_opt {
+                            if i > 0 {
+                                i -= 1;
+                            } else {
+                                i = element.options.len() - 1;
+                            }
+                            element.value = element.options[i].value;
+                        }
+                    }
+                } else if selected != !0 {
+                    let start = selected;
+                    loop {
+                        if selected > 0 {
+                            selected -= 1;
+                        } else {
+                            selected = cmp::max(elements.len(), 1) - 1;
+                        }
+                        if let Some(element) = elements.get(selected) {
+                            if element.selectable {
+                                break;
+                            }
+                        }
+                        if selected == start {
+                            break;
+                        }
+                    }
+                }
+            },
+            other => {
+                debugln!("{:?}", other);
+            },
+        }
+    }
+
+    debugln!("selected: {:p}, action: {:#x}", user_input.SelectedStatement, user_input.Action);
 
     Ok(())
 }
@@ -365,15 +668,7 @@ impl Fde {
 
         debugln!("Current FDE: {:#p}", current);
 
-        current.FormDisplay = form_display;
-        current.ExitDisplay = exit_display;
-        current.ConfirmDataChange = confirm_data_change;
-
-        // let self_addr = self as *mut _ as usize;
-        // let mut handle = Handle(0);
-        // (uefi.BootServices.InstallProtocolInterface)(&mut handle, &guid, InterfaceType::Native, self_addr)?;
-
-        //let _ = (uefi.BootServices.UninstallProtocolInterface)(handle, &SIMPLE_TEXT_OUTPUT_GUID, stdout as usize);
+        unsafe { ptr::write(current, Fde::new()); }
 
         Ok(())
     }
