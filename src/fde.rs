@@ -17,6 +17,7 @@ use uefi::status::{Error, Result, Status};
 use uefi::text::TextInputKey;
 
 use crate::display::{Display, Output, ScaledDisplay};
+use crate::image::{self, Image};
 use crate::key::{key, Key};
 
 // TODO: Move to uefi library {
@@ -306,8 +307,14 @@ pub struct Fde {
     pub ConfirmDataChange: extern "win64" fn() -> usize,
 }
 
+
+static CHECKBOX_CHECKED_BMP: &'static [u8] = include_bytes!("../res/checkbox_checked.bmp");
+static CHECKBOX_UNCHECKED_BMP: &'static [u8] = include_bytes!("../res/checkbox_unchecked.bmp");
+
 static mut DISPLAY: *mut Display = ptr::null_mut();
 static mut FONT: *const Font = ptr::null_mut();
+static mut CHECKBOX_CHECKED: *const Image = ptr::null_mut();
+static mut CHECKBOX_UNCHECKED: *const Image = ptr::null_mut();
 
 struct ElementOption {
     option_ptr: *const QuestionOption,
@@ -438,25 +445,181 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
         &*FONT
     };
 
+    let checkbox_checked = unsafe {
+        if CHECKBOX_CHECKED.is_null() {
+            let image = match image::bmp::parse(CHECKBOX_CHECKED_BMP) {
+                Ok(ok) => ok,
+                Err(err) => {
+                    println!("failed to parse checkbox checked: {}", err);
+                    return Err(Error::NotFound);
+                }
+            };
+            CHECKBOX_CHECKED = Box::into_raw(Box::new(image));
+        }
+        &*CHECKBOX_CHECKED
+    };
+
+    let checkbox_unchecked = unsafe {
+        if CHECKBOX_UNCHECKED.is_null() {
+            let image = match image::bmp::parse(CHECKBOX_UNCHECKED_BMP) {
+                Ok(ok) => ok,
+                Err(err) => {
+                    println!("failed to parse checkbox unchecked: {}", err);
+                    return Err(Error::NotFound);
+                }
+            };
+            CHECKBOX_UNCHECKED = Box::into_raw(Box::new(image));
+        }
+        &*CHECKBOX_UNCHECKED
+    };
+
     let title_opt = string(form.FormTitle).ok();
     'display: loop {
         let (display_w, display_h) = (display.width(), display.height());
 
-        display.clear();
+        // Style {
+        let background_color = Color::rgb(0x33, 0x30, 0x2F);
+        let outline_color = Color::rgb(0xbd, 0xbd, 0xbd);
+        let highlight_color = Color::rgb(0xde, 0x88, 0x00);
+        let outline_color = Color::rgba(0xfe, 0xff, 0xff, 0xc4);
+        let white = Color::rgb(0xed, 0xed, 0xed);
+        let padding_lr = 8;
+        let padding_tb = 4;
+        let margin_lr = 16;
+        let margin_tb = 8;
+        let rect_radius = 4;
+        // } Style
+
+        display.set(background_color);
 
         let font_size = (display_h as f32) / 26.0;
 
-        let black = Color::rgb(0x00, 0x00, 0x00);
-        let white = Color::rgb(0xFF, 0xFF, 0xFF);
-
-        let mut draw_rendered = |x: i32, y: i32, rendered: &Text, highlighted: bool| {
-            let (fg, bg) = if highlighted {
-                (black, white)
+        let draw_pretty_box = |display: &mut ScaledDisplay, x: i32, y: i32, w: u32, h: u32, highlighted: bool| {
+            let checkbox = if highlighted {
+                checkbox_checked
             } else {
-                (white, black)
+                checkbox_unchecked
             };
-            display.rect(x, y, rendered.width(), rendered.height(), bg);
-            rendered.draw(&mut display, x, y, fg);
+
+            if highlighted {
+                // Center
+                display.rect(
+                    x - padding_lr,
+                    y - padding_tb + rect_radius,
+                    w + padding_lr as u32 * 2,
+                    h + (padding_tb - rect_radius) as u32 * 2,
+                    highlight_color
+                );
+
+                // Top middle
+                display.rect(
+                    x - padding_lr + rect_radius,
+                    y - padding_tb,
+                    w + (padding_lr - rect_radius) as u32 * 2,
+                    rect_radius as u32,
+                    highlight_color,
+                );
+
+                // Bottom middle
+                display.rect(
+                    x - padding_lr + rect_radius,
+                    y + h as i32 + padding_tb - rect_radius,
+                    w + (padding_lr - rect_radius) as u32 * 2,
+                    rect_radius as u32,
+                    highlight_color,
+                );
+            } else {
+                // Top middle
+                display.rect(
+                    x - padding_lr + rect_radius,
+                    y - padding_tb,
+                    w + (padding_lr - rect_radius) as u32 * 2,
+                    2,
+                    outline_color
+                );
+
+                // Bottom middle
+                display.rect(
+                    x - padding_lr + rect_radius,
+                    y + h as i32 + padding_tb - 2,
+                    w + (padding_lr - rect_radius) as u32 * 2,
+                    2,
+                    outline_color
+                );
+
+                // Left middle
+                display.rect(
+                    x - padding_lr,
+                    y - padding_tb + rect_radius,
+                    2,
+                    h + (padding_tb - rect_radius) as u32 * 2,
+                    outline_color
+                );
+
+                // Right middle
+                display.rect(
+                    x + w as i32 + padding_lr - 2,
+                    y - padding_tb + rect_radius,
+                    2,
+                    h + (padding_tb - rect_radius) as u32 * 2,
+                    outline_color
+                );
+            }
+
+            // Top left
+            checkbox.roi(
+                0,
+                0,
+                rect_radius as u32,
+                rect_radius as u32
+            ).draw(
+                display,
+                x - padding_lr,
+                y - padding_tb
+            );
+
+            // Top right
+            checkbox.roi(
+                checkbox.width() - rect_radius as u32,
+                0,
+                rect_radius as u32,
+                rect_radius as u32
+            ).draw(
+                display,
+                x + w as i32 + padding_lr - rect_radius,
+                y - padding_tb
+            );
+
+            // Bottom left
+            checkbox.roi(
+                0,
+                checkbox.height() - rect_radius as u32,
+                rect_radius as u32,
+                rect_radius as u32
+            ).draw(
+                display,
+                x - padding_lr,
+                y + h as i32 + padding_tb - rect_radius
+            );
+
+            // Bottom right
+            checkbox.roi(
+                checkbox.width() - rect_radius as u32,
+                checkbox.height() - rect_radius as u32,
+                rect_radius as u32,
+                rect_radius as u32
+            ).draw(
+                display,
+                x + w as i32 + padding_lr - rect_radius,
+                y + h as i32 + padding_tb - rect_radius
+            );
+        };
+
+        let draw_rendered = |display: &mut ScaledDisplay, x: i32, y: i32, rendered: &Text, highlighted: bool| {
+            if highlighted {
+                draw_pretty_box(display, x, y, rendered.width(), rendered.height(), true);
+            }
+            rendered.draw(display, x, y, white);
         };
 
         let mut y = 0;
@@ -467,19 +630,25 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     // TODO: Do not render in drawing loop
                     let rendered = font.render(&element.prompt, font_size);
                     let x = (display_w as i32 - rendered.width() as i32) / 2;
-                    draw_rendered(x, y, &rendered, false);
-                    y += rendered.height() as i32;
+                    draw_rendered(&mut display, x, y, &rendered, false);
+                    y += rendered.height() as i32 + 8;
                 }
 
-                for option in element.options.iter() {
-                    let h = {
-                        // TODO: Do not render in drawing loop
-                        let rendered = font.render(&option.prompt, font_size);
-                        draw_rendered(16, y, &rendered, option.value == element.value);
-                        rendered.height() as i32
-                    };
+                if element.options.is_empty() {
+                    // TODO: Do not render in drawing loop
+                    let rendered = font.render(&format!("{:?}", element.value), font_size);
+                    draw_rendered(&mut display, margin_lr, y, &rendered, true);
+                } else {
+                    for option in element.options.iter() {
+                        let h = {
+                            // TODO: Do not render in drawing loop
+                            let rendered = font.render(&option.prompt, font_size);
+                            draw_rendered(&mut display, margin_lr, y, &rendered, option.value == element.value);
+                            rendered.height() as i32
+                        };
 
-                    y += h;
+                        y += h + margin_tb;
+                    }
                 }
             } else {
                 editing = false;
@@ -490,30 +659,54 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 // TODO: Do not render in drawing loop
                 let rendered = font.render(&title, font_size);
                 let x = (display_w as i32 - rendered.width() as i32) / 2;
-                draw_rendered(x, y, &rendered, false);
-                y += rendered.height() as i32;
+                draw_rendered(&mut display, x, y, &rendered, false);
+                y += rendered.height() as i32 + margin_tb;
             }
 
             for (i, element) in elements.iter().enumerate() {
                 let h = {
                     // TODO: Do not render in drawing loop
                     let rendered = font.render(&element.prompt, font_size);
-                    draw_rendered(16, y, &rendered, i == selected);
+                    draw_rendered(&mut display, margin_lr, y, &rendered, i == selected);
                     rendered.height() as i32
                 };
 
-                if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
+                let rendered_opt = if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
                     // TODO: Do not render in drawing loop
-                    let rendered = font.render(&option.prompt, font_size);
-                    draw_rendered(display_w as i32 / 2, y, &rendered, false);
+                    Some(font.render(&option.prompt, font_size))
                 } else if element.editable {
                     // TODO: Do not render in drawing loop
-                    let rendered = font.render(&format!("{:?}", element.value), font_size);
-                    draw_rendered(display_w as i32 / 2, y, &rendered, false);
+                    Some(font.render(&format!("{:?}", element.value), font_size))
+                } else {
+                    None
+                };
+                if let Some(rendered) = rendered_opt {
+                    let x = display_w as i32 / 2;
+                    /*
+                    display.rounded_rect(
+                        x - padding_lr,
+                        y - padding_tb,
+                        rendered.width() + padding_lr as u32 * 2,
+                        rendered.height() + padding_tb as u32 * 2,
+                        rect_radius as u32,
+                        false,
+                        outline_color
+                    );
+                    */
+                    draw_pretty_box(&mut display, x, y, rendered.width(), rendered.height(), false);
+                    draw_rendered(&mut display, x, y, &rendered, false);
                 }
 
-                y += h;
+                y += h + margin_tb;
             }
+
+            let x = (display_w as i32 - checkbox_checked.width() as i32) / 2;
+            checkbox_checked.draw(&mut display, x, y);
+            y += checkbox_checked.height() as i32 + margin_tb;
+
+            let x = (display_w as i32 - checkbox_unchecked.width() as i32) / 2;
+            checkbox_unchecked.draw(&mut display, x, y);
+            y += checkbox_unchecked.height() as i32 + margin_tb;
         }
 
         display.sync();
