@@ -1,6 +1,6 @@
 use orbclient::{Color, Renderer};
 use orbfont::{Font, Text};
-use std::{char, cmp, mem, ptr};
+use std::{char, cmp, mem, ptr, slice};
 use std::ops::Try;
 use std::proto::Protocol;
 use uefi::Event;
@@ -9,8 +9,8 @@ use uefi::hii::{AnimationId, ImageId, StringId};
 use uefi::hii::database::HiiHandle;
 use uefi::hii::ifr::{
     HiiDate, HiiRef, HiiTime, HiiValue,
-    IfrOpCode, IfrOpHeader, IfrTypeValue, IfrTypeValueEnum,
-    IfrAction, IfrCheckbox, IfrNumeric, IfrOneOf, IfrOneOfOption, IfrRef, IfrSubtitle
+    IfrOpCode, IfrOpHeader, IfrTypeKind, IfrTypeValue, IfrTypeValueEnum,
+    IfrAction, IfrCheckbox, IfrNumeric, IfrOneOf, IfrOneOfOption, IfrOrderedList, IfrRef, IfrSubtitle
 };
 use uefi::status::{Error, Result, Status};
 use uefi::text::TextInputKey;
@@ -329,6 +329,9 @@ struct Element {
     options: Vec<ElementOption>,
     selectable: bool,
     editable: bool,
+    list: bool,
+    list_i: usize,
+    buffer_opt: Option<&'static mut [u8]>,
 }
 
 fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
@@ -377,11 +380,70 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             }
         }
 
-        let add_element = |string_id: StringId, selectable: bool, editable: bool| {
+        let add_element = |string_id: StringId, selectable: bool, editable: bool, list: bool| {
             let value = unsafe {
                 statement.CurrentValue.Value.to_enum(statement.CurrentValue.Kind)
             };
             debugln!("    {:?}: {:?}", string_id, value);
+            let buffer_opt = if statement.CurrentValue.Buffer.is_null() {
+                None
+            } else {
+                let buffer = unsafe {
+                    slice::from_raw_parts_mut(
+                        statement.CurrentValue.Buffer,
+                        statement.CurrentValue.BufferLen as usize
+                    )
+                };
+                debugln!("      buffer: {:?}", buffer);
+                // Order list according to buffer
+                if list {
+                    let mut offset = 0;
+                    for i in 0..options.len() {
+                        for j in i..options.len() {
+                            macro_rules! check_option {
+                                ($x:ident) => ({
+                                    let next_offset = offset + mem::size_of_val(&$x);
+                                    if next_offset <= buffer.len() {
+                                        let mut x_copy = $x;
+                                        unsafe {
+                                            ptr::copy(
+                                                buffer.as_ptr().add(offset) as *const _,
+                                                &mut x_copy,
+                                                1
+                                            );
+                                        };
+                                        if $x == x_copy {
+                                            offset = next_offset;
+                                            true
+                                        } else {
+                                            false
+                                        }
+                                    } else {
+                                        false
+                                    }
+                                });
+                            }
+                            let matches = match options[j].value {
+                                IfrTypeValueEnum::U8(u8) => check_option!(u8),
+                                IfrTypeValueEnum::U16(u16) => check_option!(u16),
+                                IfrTypeValueEnum::U32(u32) => check_option!(u32),
+                                IfrTypeValueEnum::U64(u64) => check_option!(u64),
+                                other => {
+                                    debugln!("unsupported option in list: {:?}", other);
+                                    false
+                                },
+                            };
+                            if matches {
+                                if i != j {
+                                    options.swap(i, j);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+                Some(buffer)
+            };
             if let Ok(prompt) = string(string_id) {
                 if statement_ptr == form.HighlightedStatement || (selected == !0 && selectable) {
                     selected = elements.len();
@@ -389,34 +451,47 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 elements.push(Element {
                     statement_ptr,
                     prompt,
+                    value,
                     options,
                     selectable,
                     editable,
-                    value,
+                    list,
+                    list_i: 0,
+                    buffer_opt,
                 });
             }
         };
 
         if let Some(op) = statement.OpCode() {
             debugln!("  {:?}", op);
+            macro_rules! cast {
+                ($type:ty) => ({
+                    debugln!("    casting {} to {}", op.Length(), mem::size_of::<$type>());
+                    op.cast::<$type>()
+                });
+            }
             match op.OpCode {
-                IfrOpCode::Action => if let Some(action) = unsafe { op.cast::<IfrAction>() } {
-                    add_element(action.QuestionHeader.Header.Prompt, true, false);
+                IfrOpCode::Action => if let Some(action) = unsafe { cast!(IfrAction) } {
+                    add_element(action.QuestionHeader.Header.Prompt, true, false, false);
                 },
-                IfrOpCode::Checkbox => if let Some(checkbox) = unsafe { op.cast::<IfrCheckbox>() } {
-                    add_element(checkbox.Question.Header.Prompt, true, true);
+                IfrOpCode::Checkbox => if let Some(checkbox) = unsafe { cast!(IfrCheckbox) } {
+                    add_element(checkbox.Question.Header.Prompt, true, true, false);
                 },
-                IfrOpCode::Numeric => if let Some(numeric) = unsafe { op.cast::<IfrNumeric>() } {
-                    add_element(numeric.Question.Header.Prompt, true, true);
+                IfrOpCode::Numeric => if let Some(numeric) = unsafe { cast!(IfrNumeric) } {
+                    add_element(numeric.Question.Header.Prompt, true, true, false);
                 },
-                IfrOpCode::OneOf => if let Some(one_of) = unsafe { op.cast::<IfrOneOf>() } {
-                    add_element(one_of.Question.Header.Prompt, true, true);
+                IfrOpCode::OneOf => if let Some(one_of) = unsafe { cast!(IfrOneOf) } {
+                    add_element(one_of.Question.Header.Prompt, true, true, false);
                 },
-                IfrOpCode::Ref => if let Some(ref_) = unsafe { op.cast::<IfrRef>() } {
-                    add_element(ref_.Question.Header.Prompt, true, false);
+                IfrOpCode::OrderedList => if let Some(ordered_list) = unsafe { cast!(IfrOrderedList) } {
+                    debugln!("{:?}", ordered_list);
+                    add_element(ordered_list.Question.Header.Prompt, true, true, true);
                 },
-                IfrOpCode::Subtitle => if let Some(subtitle) = unsafe { op.cast::<IfrSubtitle>() } {
-                    add_element(subtitle.Statement.Prompt, false, false);
+                IfrOpCode::Ref => if let Some(ref_) = unsafe { cast!(IfrRef) } {
+                    add_element(ref_.Question.Header.Prompt, true, false, false);
+                },
+                IfrOpCode::Subtitle => if let Some(subtitle) = unsafe { cast!(IfrSubtitle) } {
+                    add_element(subtitle.Statement.Prompt, false, false, false);
                 },
                 _ => ()
             }
@@ -671,6 +746,14 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 if element.options.is_empty() {
                     let h = draw_value_box(&mut display, margin_lr, y, &element.value, true);
                     y += h + margin_tb;
+                } else if element.list {
+                    for (i, option) in element.options.iter().enumerate() {
+                        // TODO: Do not render in drawing loop
+                        let rendered = font.render(&option.prompt, font_size);
+                        let highlighted = i == element.list_i;
+                        draw_text_box(&mut display, margin_lr, y, &rendered, highlighted, highlighted);
+                        y += rendered.height() as i32 + margin_tb;
+                    }
                 } else {
                     for option in element.options.iter() {
                         // TODO: Do not render in drawing loop
@@ -712,7 +795,20 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 };
 
                 let x = display_w as i32 / 2;
-                if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
+                if element.list {
+                    let start_y = y;
+                    let mut w = 0;
+                    for option in element.options.iter() {
+                        let rendered = font.render(&option.prompt, font_size);
+                        draw_text_box(&mut display, x, y, &rendered, false, false);
+                        w = cmp::max(w, rendered.width());
+                        y += rendered.height() as i32 + margin_tb;
+                    }
+                    if y > start_y {
+                        draw_pretty_box(&mut display, x, start_y, w, (y - start_y - margin_tb) as u32, highlighted && editing);
+                    }
+                    y -= h + margin_tb;
+                } else if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
                     // TODO: Do not render in drawing loop
                     let rendered = font.render(&option.prompt, font_size);
                     draw_text_box(&mut display, x, y, &rendered, true, highlighted && editing);
@@ -724,36 +820,94 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             }
         }
 
+        // Draw footer
+        {
+            y = display_h as i32 - font_size as i32 - margin_tb * 3;
+            display.rect(
+                0,
+                y,
+                display_w,
+                1,
+                Color::rgb(0xac, 0xac, 0xac)
+            );
+            y += margin_tb * 3 / 2;
+
+            let rendered = font.render("https://github.com/system76/firmware-setup", font_size);
+            let x = (display_w as i32 - rendered.width() as i32) / 2;
+            draw_text_box(&mut display, x, y, &rendered, false, false);
+            y += rendered.height() as i32 + margin_tb;
+        }
+
+
         display.sync();
 
         match key()? {
             Key::Enter => {
-                debugln!("enter");
-                if let Some(element) = elements.get(selected) {
+                debugln!("Enter");
+                if let Some(mut element) = elements.get_mut(selected) {
                     if element.editable && ! editing {
                         editing = true;
                     } else {
                         user_input.SelectedStatement = element.statement_ptr;
+                        unsafe {
+                            ptr::copy(
+                                &(*element.statement_ptr).CurrentValue,
+                                &mut user_input.InputValue,
+                                1
+                            );
+                        }
                         if editing {
-                            let (kind, value) = unsafe { element.value.to_union() };
-                            user_input.InputValue.Kind = kind;
-                            user_input.InputValue.Value = value;
-                            editing = false;
-                        } else {
-                            unsafe {
-                                ptr::copy(
-                                    &(*element.statement_ptr).CurrentValue,
-                                    &mut user_input.InputValue,
-                                    1
-                                );
+                            if element.list {
+                                let mut offset = 0;
+                                if let Some(ref mut buffer) = element.buffer_opt {
+                                    for option in element.options.iter() {
+                                        macro_rules! copy_option {
+                                            ($x:ident) => ({
+                                                let next_offset = offset + mem::size_of_val(&$x);
+                                                if next_offset <= buffer.len() {
+                                                    unsafe {
+                                                        ptr::copy(
+                                                            &$x,
+                                                            buffer.as_mut_ptr().add(offset) as *mut _,
+                                                            1
+                                                        )
+                                                    }
+                                                }
+                                                offset = next_offset;
+                                            });
+                                        }
+                                        match option.value {
+                                            IfrTypeValueEnum::U8(u8) => copy_option!(u8),
+                                            IfrTypeValueEnum::U16(u16) => copy_option!(u16),
+                                            IfrTypeValueEnum::U32(u32) => copy_option!(u32),
+                                            IfrTypeValueEnum::U64(u64) => copy_option!(u64),
+                                            other => {
+                                                debugln!("unsupported option in list: {:?}", other);
+                                            },
+                                        }
+                                    }
+                                    if offset < buffer.len() {
+                                        for i in offset..buffer.len() {
+                                            buffer[i] = 0;
+                                        }
+                                    }
+                                    debugln!("modified: {:?}", buffer);
+                                } else {
+                                    debugln!("list without buffer");
+                                }
+                            } else {
+                                let (kind, value) = unsafe { element.value.to_union() };
+                                user_input.InputValue.Kind = kind;
+                                user_input.InputValue.Value = value;
                             }
+                            editing = false;
                         }
                         break 'display;
                     }
                 }
             },
             Key::Escape => {
-                debugln!("escape");
+                debugln!("Escape");
                 if editing {
                     editing = false;
                 } else {
@@ -762,17 +916,25 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 }
             },
             Key::Down => {
-                debugln!("down");
+                debugln!("Down");
                 if editing {
                     if let Some(mut element) = elements.get_mut(selected) {
-                        let i_opt = element.options.iter().position(|o| o.value == element.value);
-                        if let Some(mut i) = i_opt {
-                            if i + 1 < element.options.len() {
-                                i += 1;
+                        if element.list {
+                            if element.list_i + 1 < element.options.len() {
+                                element.list_i += 1;
                             } else {
-                                i = 0;
+                                element.list_i = 0;
                             }
-                            element.value = element.options[i].value;
+                        } else {
+                            let i_opt = element.options.iter().position(|o| o.value == element.value);
+                            if let Some(mut i) = i_opt {
+                                if i + 1 < element.options.len() {
+                                    i += 1;
+                                } else {
+                                    i = 0;
+                                }
+                                element.value = element.options[i].value;
+                            }
                         }
                     }
                 } else if selected != !0 {
@@ -795,17 +957,25 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 }
             },
             Key::Up => {
-                debugln!("up");
+                debugln!("Up");
                 if editing {
                     if let Some(mut element) = elements.get_mut(selected) {
-                        let i_opt = element.options.iter().position(|o| o.value == element.value);
-                        if let Some(mut i) = i_opt {
-                            if i > 0 {
-                                i -= 1;
-                            } else {
-                                i = element.options.len() - 1;
+                        if element.list {
+                            if element.list_i > 0 {
+                                element.list_i -= 1;
+                            } else if ! element.options.is_empty() {
+                                element.list_i = element.options.len() - 1;
                             }
-                            element.value = element.options[i].value;
+                        } else {
+                            let i_opt = element.options.iter().position(|o| o.value == element.value);
+                            if let Some(mut i) = i_opt {
+                                if i > 0 {
+                                    i -= 1;
+                                } else {
+                                    i = element.options.len() - 1;
+                                }
+                                element.value = element.options[i].value;
+                            }
                         }
                     }
                 } else if selected != !0 {
@@ -823,6 +993,32 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                         }
                         if selected == start {
                             break;
+                        }
+                    }
+                }
+            },
+            Key::PageDown => {
+                debugln!("PageDown");
+                if editing {
+                    if let Some(mut element) = elements.get_mut(selected) {
+                        if element.list {
+                            if element.list_i + 1 < element.options.len() {
+                                element.options.swap(element.list_i, element.list_i + 1);
+                                element.list_i += 1;
+                            }
+                        }
+                    }
+                }
+            },
+            Key::PageUp => {
+                debugln!("PageUp");
+                if editing {
+                    if let Some(mut element) = elements.get_mut(selected) {
+                        if element.list {
+                            if element.list_i > 0 {
+                                element.list_i -= 1;
+                                element.options.swap(element.list_i, element.list_i + 1);
+                            }
                         }
                     }
                 }
