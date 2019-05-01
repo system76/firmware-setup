@@ -4,6 +4,7 @@
 #![feature(core_intrinsics)]
 #![feature(prelude_import)]
 #![feature(try_trait)]
+#![allow(non_snake_case)]
 
 extern crate coreboot_table;
 extern crate dmi;
@@ -25,43 +26,17 @@ use core::ptr;
 use std::proto::Protocol;
 use uefi::status::{Result, Status};
 
-mod app;
 #[macro_use]
 mod debug;
 mod display;
 mod hii;
 pub mod image;
-mod io;
 mod key;
 pub mod null;
 pub mod text;
 
-mod dump_hii;
+//mod dump_hii;
 mod fde;
-
-fn set_max_mode(output: &uefi::text::TextOutput) -> Result<()> {
-    let mut max_i = None;
-    let mut max_w = 0;
-    let mut max_h = 0;
-
-    for i in 0..output.Mode.MaxMode as usize {
-        let mut w = 0;
-        let mut h = 0;
-        if (output.QueryMode)(output, i, &mut w, &mut h).into_result().is_ok() {
-            if w >= max_w && h >= max_h {
-                max_i = Some(i);
-                max_w = w;
-                max_h = h;
-            }
-        }
-    }
-
-    if let Some(i) = max_i {
-        (output.SetMode)(output, i)?;
-    }
-
-    Ok(())
-}
 
 #[no_mangle]
 pub extern "C" fn main() -> Status {
@@ -69,22 +44,10 @@ pub extern "C" fn main() -> Status {
 
     let _ = (uefi.BootServices.SetWatchdogTimer)(0, 0, 0, ptr::null());
 
-    /*
-    if let Err(err) = set_max_mode(uefi.ConsoleOut).into_result() {
-        println!("Failed to set max mode: {:?}", err);
+    if let Err(err) = fde::Fde::install() {
+        println!("Fde error: {:?}", err);
+        let _ = key::key();
     }
-
-    let _ = (uefi.ConsoleOut.SetAttribute)(uefi.ConsoleOut, 0x0F);
-
-    if let Err(err) = /*app::main()*/ dump_hii::dump_hii() {
-        println!("App error: {:?}", err);
-        let _ = io::wait_key();
-    }
-    */
-
-    let mut fde = Box::new(fde::Fde::new());
-    fde.install();
-    Box::into_raw(fde);
 
     Status(0)
 }
