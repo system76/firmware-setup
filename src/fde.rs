@@ -3,14 +3,13 @@ use orbfont::{Font, Text};
 use std::{char, cmp, mem, ptr};
 use std::ops::Try;
 use std::proto::Protocol;
-use uefi::{Event, Handle};
-use uefi::boot::InterfaceType;
+use uefi::Event;
 use uefi::guid::Guid;
-use uefi::hii::{AnimationId, FormId, ImageId, QuestionId, StringId};
+use uefi::hii::{AnimationId, ImageId, StringId};
 use uefi::hii::database::HiiHandle;
 use uefi::hii::ifr::{
     HiiDate, HiiRef, HiiTime, HiiValue,
-    IfrOpCode, IfrOpHeader, IfrTypeKind, IfrTypeValue, IfrTypeValueEnum,
+    IfrOpCode, IfrOpHeader, IfrTypeValue, IfrTypeValueEnum,
     IfrAction, IfrCheckbox, IfrNumeric, IfrOneOf, IfrOneOfOption, IfrRef, IfrSubtitle
 };
 use uefi::status::{Error, Result, Status};
@@ -480,7 +479,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
         // Style {
         let background_color = Color::rgb(0x33, 0x30, 0x2F);
-        let outline_color = Color::rgb(0xbd, 0xbd, 0xbd);
         let highlight_color = Color::rgb(0xde, 0x88, 0x00);
         let outline_color = Color::rgba(0xfe, 0xff, 0xff, 0xc4);
         let text_color = Color::rgb(0xed, 0xed, 0xed);
@@ -759,7 +757,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 if editing {
                     editing = false;
                 } else {
-                    user_input.Action = (1 << 17);
+                    user_input.Action = 1 << 17;
                     break 'display;
                 }
             },
@@ -842,7 +840,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
 extern "win64" fn form_display(form: &Form, user_input: &mut UserInput) -> Status {
     match form_display_inner(form, user_input) {
-        Ok(ok) => Status::from_ok(0),
+        Ok(()) => Status::from_ok(0),
         Err(err) => Status::from_error(err),
     }
 }

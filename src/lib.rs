@@ -21,10 +21,8 @@ extern crate uefi_std as std;
 #[prelude_import]
 use std::prelude::*;
 
-use core::ops::Try;
 use core::ptr;
-use std::proto::Protocol;
-use uefi::status::{Result, Status};
+use uefi::status::Status;
 
 #[macro_use]
 mod debug;
