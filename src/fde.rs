@@ -1,6 +1,6 @@
 use orbclient::{Color, Renderer};
 use orbfont::{Font, Text};
-use std::{char, cmp, mem, ptr, slice};
+use std::{char, cmp, ffi, mem, ptr, slice};
 use std::ops::Try;
 use std::proto::Protocol;
 use uefi::Event;
@@ -17,7 +17,7 @@ use uefi::text::TextInputKey;
 
 use crate::display::{Display, Output, ScaledDisplay};
 use crate::image::{self, Image};
-use crate::key::{key, Key};
+use crate::key::{raw_key, Key};
 
 // TODO: Move to uefi library {
 pub const HII_STRING_PROTOCOL_GUID: Guid = Guid(0xfd96974, 0x23aa, 0x4cdc, [0xb9, 0xcb, 0x98, 0xd1, 0x77, 0x50, 0x32, 0x2a]);
@@ -161,6 +161,7 @@ impl<'a, T> Iterator for ListEntryIter<'a, T> where ListEntry<T>: ListEntryObjec
         let next = current.next();
         if next.map(|x| x as *const _) == self.start.map(|x| x as *const _) {
             self.current = None;
+            return None;
         } else {
             self.current = next;
         }
@@ -337,22 +338,28 @@ struct Element {
 fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     debugln!();
     debugln!("form_display");
-    debugln!("FORM_DISPLAY_ENGINE_FORM {}", mem::size_of_val(form));
-    debugln!("EFI_HII_VALUE {}",  mem::size_of_val(user_input));
-    debugln!("HII_VALUE {}", mem::size_of::<HiiValue>());
-    debugln!("EFI_IFR_TYPE_VALUE {}", mem::size_of::<IfrTypeValue>());
-    debugln!("EFI_GUID {}", mem::size_of::<Guid>());
-    debugln!("EFI_HII_TIME {}", mem::size_of::<HiiTime>());
-    debugln!("EFI_HII_DATE {}", mem::size_of::<HiiDate>());
-    debugln!("EFI_HII_REF {}", mem::size_of::<HiiRef>());
-    debugln!("EFI_IFR_CHECKBOX {}", mem::size_of::<IfrCheckbox>());
-    debugln!("EFI_IFR_SUBTITLE {}", mem::size_of::<IfrSubtitle>());
+    debugln!("FORM_DISPLAY_ENGINE_FORM {}, {:?}", mem::size_of::<Form>(), span_of!(Form, HotKeyListHead));
+    debugln!("BROWSER_HOT_KEY {}, {:?}", mem::size_of::<HotKey>(), span_of!(HotKey, Link));
 
     let hii_string = <&'static mut HiiStringProtocol>::one()?;
 
     let string = |string_id: StringId| -> Result<String> {
          hii_string.string(form.HiiHandle, string_id)
     };
+
+    for hotkey in form.HotKeyListHead.iter() {
+        let hotkey_ptr = hotkey as *const _;
+        debugln!("  hotkey: {:p}, {:x?}", hotkey_ptr, unsafe {
+            slice::from_raw_parts(
+                hotkey_ptr as *const u8,
+                mem::size_of_val(hotkey)
+            )
+        });
+        debugln!("    key: {:p}, {:?}", hotkey.KeyData, unsafe { *hotkey.KeyData });
+        debugln!("    action: {:#x}", hotkey.Action);
+        debugln!("    defaultid: {:#x}", hotkey.DefaultId);
+        debugln!("    help: {:p}, {}", hotkey.HelpString, ffi::nstr(hotkey.HelpString));
+    }
 
     let mut selected = !0;
     let mut editing = false;
@@ -841,9 +848,21 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
         display.sync();
 
-        match key()? {
+        let raw_key = raw_key()?;
+        for hotkey in form.HotKeyListHead.iter() {
+            let key_data = unsafe { &*hotkey.KeyData };
+            if key_data.ScanCode == raw_key.ScanCode && key_data.UnicodeChar == raw_key.UnicodeChar {
+                debugln!("pressed {}", ffi::nstr(hotkey.HelpString));    
+                user_input.Action = hotkey.Action;
+                user_input.DefaultId = hotkey.DefaultId;
+                break 'display;
+            }
+        }
+
+        let key = Key::from(raw_key);
+        debugln!("{:?}", key);
+        match key {
             Key::Enter => {
-                debugln!("Enter");
                 if let Some(mut element) = elements.get_mut(selected) {
                     if element.editable && ! editing {
                         editing = true;
@@ -907,7 +926,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 }
             },
             Key::Escape => {
-                debugln!("Escape");
                 if editing {
                     editing = false;
                 } else {
@@ -916,7 +934,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 }
             },
             Key::Down => {
-                debugln!("Down");
                 if editing {
                     if let Some(mut element) = elements.get_mut(selected) {
                         if element.list {
@@ -957,7 +974,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 }
             },
             Key::Up => {
-                debugln!("Up");
                 if editing {
                     if let Some(mut element) = elements.get_mut(selected) {
                         if element.list {
@@ -998,7 +1014,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 }
             },
             Key::PageDown => {
-                debugln!("PageDown");
                 if editing {
                     if let Some(mut element) = elements.get_mut(selected) {
                         if element.list {
@@ -1011,7 +1026,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 }
             },
             Key::PageUp => {
-                debugln!("PageUp");
                 if editing {
                     if let Some(mut element) = elements.get_mut(selected) {
                         if element.list {
@@ -1023,9 +1037,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     }
                 }
             },
-            other => {
-                debugln!("{:?}", other);
-            },
+            _ => (),
         }
     }
 
