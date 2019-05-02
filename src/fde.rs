@@ -561,6 +561,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             let (display_w, display_h) = (display.width(), display.height());
 
             let scale = if display_h > 1440 {
+                4
+            } else if display_h > 720 {
                 2
             } else {
                 1
@@ -572,17 +574,17 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             let outline_color = Color::rgba(0xfe, 0xff, 0xff, 0xc4);
             let text_color = Color::rgb(0xed, 0xed, 0xed);
 
-            let padding_lr = 8 * scale;
-            let padding_tb = 4 * scale;
+            let padding_lr = 4 * scale;
+            let padding_tb = 2 * scale;
 
-            let margin_lr = 16 * scale;
-            let margin_tb = 8 * scale;
+            let margin_lr = 8 * scale;
+            let margin_tb = 4 * scale;
 
             let rect_radius = 4; //TODO: does not scale due to hardcoded checkbox image!
 
-            let title_font_size = (40  * scale) as f32;
-            let font_size = (32 * scale) as f32; // (display_h as f32) / 26.0
-            let help_font_size = (24 * scale) as f32;
+            let title_font_size = (20  * scale) as f32;
+            let font_size = (16 * scale) as f32; // (display_h as f32) / 26.0
+            let help_font_size = (12 * scale) as f32;
             // } Style
 
             display.set(background_color);
