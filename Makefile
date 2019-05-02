@@ -32,7 +32,6 @@ $(BUILD)/efi.img: $(BUILD)/boot.efi
 	mmd -i $@.tmp efi
 	mmd -i $@.tmp efi/boot
 	mcopy -i $@.tmp $< ::driver.efi
-	mcopy -i $@.tmp res/shell.efi ::efi/boot/bootx64.efi
 	mcopy -i $@.tmp res/startup.nsh ::startup.nsh
 	mv $@.tmp $@
 
