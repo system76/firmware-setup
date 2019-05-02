@@ -9,7 +9,7 @@ use uefi::hii::{AnimationId, ImageId, StringId};
 use uefi::hii::database::HiiHandle;
 use uefi::hii::ifr::{
     HiiDate, HiiRef, HiiTime, HiiValue,
-    IfrOpCode, IfrOpHeader, IfrTypeKind, IfrTypeValue, IfrTypeValueEnum,
+    IfrOpCode, IfrOpHeader, IfrStatementHeader, IfrTypeKind, IfrTypeValue, IfrTypeValueEnum,
     IfrAction, IfrCheckbox, IfrNumeric, IfrOneOf, IfrOneOfOption, IfrOrderedList, IfrRef, IfrSubtitle
 };
 use uefi::status::{Error, Result, Status};
@@ -326,6 +326,7 @@ struct ElementOption {
 struct Element {
     statement_ptr: *const Statement,
     prompt: String,
+    help: String,
     value: IfrTypeValueEnum,
     options: Vec<ElementOption>,
     selectable: bool,
@@ -377,21 +378,19 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     op.Value.to_enum(op.Kind)
                 };
                 debugln!("    {:?}: {:?}", op.Option, value);
-                if let Ok(prompt) = string(op.Option) {
-                    options.push(ElementOption {
-                        option_ptr,
-                        prompt,
-                        value,
-                    });
-                }
+                options.push(ElementOption {
+                    option_ptr,
+                    prompt: string(op.Option).unwrap_or(String::new()),
+                    value,
+                });
             }
         }
 
-        let add_element = |string_id: StringId, selectable: bool, editable: bool, list: bool| {
+        let add_element = |header: IfrStatementHeader, selectable: bool, editable: bool, list: bool| {
             let value = unsafe {
                 statement.CurrentValue.Value.to_enum(statement.CurrentValue.Kind)
             };
-            debugln!("    {:?}: {:?}", string_id, value);
+            debugln!("    {:?}: {:?}", header, value);
             let buffer_opt = if statement.CurrentValue.Buffer.is_null() {
                 None
             } else {
@@ -451,22 +450,21 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 }
                 Some(buffer)
             };
-            if let Ok(prompt) = string(string_id) {
-                if statement_ptr == form.HighlightedStatement || (selected == !0 && selectable) {
-                    selected = elements.len();
-                }
-                elements.push(Element {
-                    statement_ptr,
-                    prompt,
-                    value,
-                    options,
-                    selectable,
-                    editable,
-                    list,
-                    list_i: 0,
-                    buffer_opt,
-                });
+            if statement_ptr == form.HighlightedStatement || (selected == !0 && selectable) {
+                selected = elements.len();
             }
+            elements.push(Element {
+                statement_ptr,
+                prompt: string(header.Prompt).unwrap_or(String::new()),
+                help: string(header.Help).unwrap_or(String::new()),
+                value,
+                options,
+                selectable,
+                editable,
+                list,
+                list_i: 0,
+                buffer_opt,
+            });
         };
 
         if let Some(op) = statement.OpCode() {
@@ -479,26 +477,25 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             }
             match op.OpCode {
                 IfrOpCode::Action => if let Some(action) = unsafe { cast!(IfrAction) } {
-                    add_element(action.QuestionHeader.Header.Prompt, true, false, false);
+                    add_element(action.QuestionHeader.Header, true, false, false);
                 },
                 IfrOpCode::Checkbox => if let Some(checkbox) = unsafe { cast!(IfrCheckbox) } {
-                    add_element(checkbox.Question.Header.Prompt, true, true, false);
+                    add_element(checkbox.Question.Header, true, true, false);
                 },
                 IfrOpCode::Numeric => if let Some(numeric) = unsafe { cast!(IfrNumeric) } {
-                    add_element(numeric.Question.Header.Prompt, true, true, false);
+                    add_element(numeric.Question.Header, true, true, false);
                 },
                 IfrOpCode::OneOf => if let Some(one_of) = unsafe { cast!(IfrOneOf) } {
-                    add_element(one_of.Question.Header.Prompt, true, true, false);
+                    add_element(one_of.Question.Header, true, true, false);
                 },
                 IfrOpCode::OrderedList => if let Some(ordered_list) = unsafe { cast!(IfrOrderedList) } {
-                    debugln!("{:?}", ordered_list);
-                    add_element(ordered_list.Question.Header.Prompt, true, true, true);
+                    add_element(ordered_list.Question.Header, true, true, true);
                 },
                 IfrOpCode::Ref => if let Some(ref_) = unsafe { cast!(IfrRef) } {
-                    add_element(ref_.Question.Header.Prompt, true, false, false);
+                    add_element(ref_.Question.Header, true, false, false);
                 },
                 IfrOpCode::Subtitle => if let Some(subtitle) = unsafe { cast!(IfrSubtitle) } {
-                    add_element(subtitle.Statement.Prompt, false, false, false);
+                    add_element(subtitle.Statement, false, false, false);
                 },
                 _ => ()
             }
@@ -829,7 +826,31 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
         // Draw footer
         {
-            y = display_h as i32 - font_size as i32 - margin_tb * 3;
+            y = display_h as i32;
+
+            if let Some(element) = elements.get(selected) {
+                let rendered = font.render(&element.help, font_size);
+                let x = (display_w as i32 - rendered.width() as i32) / 2;
+                y -= rendered.height() as i32 + margin_tb;
+                draw_text_box(&mut display, x, y, &rendered, false, false);
+            } else {
+                let rendered = font.render("https://github.com/system76/firmware-setup", font_size);
+                let x = (display_w as i32 - rendered.width() as i32) / 2;
+                y -= rendered.height() as i32 + margin_tb;
+                draw_text_box(&mut display, x, y, &rendered, false, false);
+            }
+
+            let mut x = margin_lr;
+            for (i, hotkey) in form.HotKeyListHead.iter().enumerate() {
+                let rendered = font.render(&ffi::nstr(hotkey.HelpString), font_size);
+                if i == 0 {
+                    y -= rendered.height() as i32 + margin_tb;
+                }
+                draw_text_box(&mut display, x, y, &rendered, true, false);
+                x += rendered.width() as i32 + margin_lr * 2;
+            }
+
+            y -= margin_tb * 3 / 2;
             display.rect(
                 0,
                 y,
@@ -837,12 +858,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 1,
                 Color::rgb(0xac, 0xac, 0xac)
             );
-            y += margin_tb * 3 / 2;
-
-            let rendered = font.render("https://github.com/system76/firmware-setup", font_size);
-            let x = (display_w as i32 - rendered.width() as i32) / 2;
-            draw_text_box(&mut display, x, y, &rendered, false, false);
-            y += rendered.height() as i32 + margin_tb;
         }
 
 
@@ -852,7 +867,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
         for hotkey in form.HotKeyListHead.iter() {
             let key_data = unsafe { &*hotkey.KeyData };
             if key_data.ScanCode == raw_key.ScanCode && key_data.UnicodeChar == raw_key.UnicodeChar {
-                debugln!("pressed {}", ffi::nstr(hotkey.HelpString));    
+                debugln!("pressed {}", ffi::nstr(hotkey.HelpString));
                 user_input.Action = hotkey.Action;
                 user_input.DefaultId = hotkey.DefaultId;
                 break 'display;
