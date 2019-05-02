@@ -14,9 +14,14 @@ update:
 	git submodule update --init --recursive --remote
 	cargo update
 
-qemu: $(BUILD)/boot.img
-	kvm -M q35 -m 1024 -net none -vga std -bios /usr/share/OVMF/OVMF_CODE.fd $< \
-	-chardev stdio,id=debug -device isa-debugcon,iobase=0x402,chardev=debug
+$(BUILD)/OVMF_VARS.fd: /usr/share/OVMF/OVMF_VARS.fd
+	cp $< $@
+
+qemu: $(BUILD)/boot.img $(BUILD)/OVMF_VARS.fd
+	kvm -M q35 -m 1024 -net none -vga std $< \
+		-drive if=pflash,format=raw,readonly,file=/usr/share/OVMF/OVMF_CODE.fd \
+		-drive if=pflash,format=raw,file=$(BUILD)/OVMF_VARS.fd \
+		-chardev stdio,id=debug -device isa-debugcon,iobase=0x402,chardev=debug
 
 $(BUILD)/boot.img: $(BUILD)/efi.img
 	dd if=/dev/zero of=$@.tmp bs=512 count=100352
