@@ -15,7 +15,7 @@ use uefi::hii::ifr::{
 use uefi::status::{Error, Result, Status};
 use uefi::text::TextInputKey;
 
-use crate::display::{Display, Output, ScaledDisplay};
+use crate::display::{Display, Output};
 use crate::image::{self, Image};
 use crate::key::{raw_key, Key};
 
@@ -511,7 +511,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 let display = Display::new(Output::one()?);
                 DISPLAY = Box::into_raw(Box::new(display));
             }
-            ScaledDisplay::new(&mut *DISPLAY)
+            &mut *DISPLAY
         };
 
         let font = unsafe {
@@ -560,28 +560,34 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
         'display: loop {
             let (display_w, display_h) = (display.width(), display.height());
 
+            let scale = if display_h > 1440 {
+                2
+            } else {
+                1
+            };
+
             // Style {
             let background_color = Color::rgb(0x33, 0x30, 0x2F);
             let highlight_color = Color::rgb(0xde, 0x88, 0x00);
             let outline_color = Color::rgba(0xfe, 0xff, 0xff, 0xc4);
             let text_color = Color::rgb(0xed, 0xed, 0xed);
 
-            let padding_lr = 8;
-            let padding_tb = 4;
+            let padding_lr = 8 * scale;
+            let padding_tb = 4 * scale;
 
-            let margin_lr = 16;
-            let margin_tb = 8;
+            let margin_lr = 16 * scale;
+            let margin_tb = 8 * scale;
 
-            let rect_radius = 4;
+            let rect_radius = 4; //TODO: does not scale due to hardcoded checkbox image!
 
-            let title_font_size = 40.0;
-            let font_size = 32.0; // (display_h as f32) / 26.0
-            let help_font_size = 24.0;
+            let title_font_size = (40  * scale) as f32;
+            let font_size = (32 * scale) as f32; // (display_h as f32) / 26.0
+            let help_font_size = (24 * scale) as f32;
             // } Style
 
             display.set(background_color);
 
-            let draw_pretty_box = |display: &mut ScaledDisplay, x: i32, y: i32, w: u32, h: u32, highlighted: bool| {
+            let draw_pretty_box = |display: &mut Display, x: i32, y: i32, w: u32, h: u32, highlighted: bool| {
                 let checkbox = if highlighted {
                     // Center
                     display.rect(
@@ -700,14 +706,14 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 );
             };
 
-            let draw_text_box = |display: &mut ScaledDisplay, x: i32, y: i32, rendered: &Text, pretty_box: bool, highlighted: bool| {
+            let draw_text_box = |display: &mut Display, x: i32, y: i32, rendered: &Text, pretty_box: bool, highlighted: bool| {
                 if pretty_box {
                     draw_pretty_box(display, x, y, rendered.width(), rendered.height(), highlighted);
                 }
                 rendered.draw(display, x, y, text_color);
             };
 
-            let draw_check_box = |display: &mut ScaledDisplay, x: i32, y: i32, value: bool| -> i32 {
+            let draw_check_box = |display: &mut Display, x: i32, y: i32, value: bool| -> i32 {
                 let checkbox = if value {
                     checkbox_checked
                 } else {
@@ -717,7 +723,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 checkbox.height() as i32
             };
 
-            let draw_value_box = |display: &mut ScaledDisplay, x: i32, y: i32, value: &IfrTypeValueEnum, highlighted: bool| -> i32 {
+            let draw_value_box = |display: &mut Display, x: i32, y: i32, value: &IfrTypeValueEnum, highlighted: bool| -> i32 {
                 //TODO: Do not format in drawing loop
                 let value_string = match value {
                     IfrTypeValueEnum::U8(value) => format!("{}", value),
