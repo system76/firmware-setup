@@ -942,7 +942,40 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             match key {
                 Key::Enter => {
                     if let Some(mut element) = elements.get_mut(selected) {
-                        if element.editable && ! editing {
+                        let mut checkbox = false;
+                        {
+                            let statement = unsafe { &(*element.statement_ptr) };
+                            if let Some(op) = statement.OpCode() {
+                                match op.OpCode {
+                                    IfrOpCode::Checkbox => checkbox = true,
+                                    _ => (),
+                                }
+                            }
+                        }
+
+                        if checkbox {
+                            match element.value {
+                                IfrTypeValueEnum::Bool(b) => {
+                                    user_input.SelectedStatement = element.statement_ptr;
+                                    unsafe {
+                                        ptr::copy(
+                                            &(*element.statement_ptr).CurrentValue,
+                                            &mut user_input.InputValue,
+                                            1
+                                        );
+                                    }
+
+                                    let (kind, value) = unsafe {
+                                        IfrTypeValueEnum::Bool(!b).to_union()
+                                    };
+                                    user_input.InputValue.Kind = kind;
+                                    user_input.InputValue.Value = value;
+
+                                    break 'render;
+                                },
+                                other => debugln!("unsupported checkbox value {:?}", other)
+                            }
+                        } else if element.editable && ! editing {
                             editing = true;
                         } else {
                             user_input.SelectedStatement = element.statement_ptr;
