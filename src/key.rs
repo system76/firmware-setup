@@ -71,11 +71,13 @@ impl From<TextInputKey> for Key {
     }
 }
 
-pub fn raw_key() -> Result<TextInputKey> {
+pub fn raw_key(wait: bool) -> Result<TextInputKey> {
     let uefi = std::system_table();
 
-    let mut index = 0;
-    (uefi.BootServices.WaitForEvent)(1, &uefi.ConsoleIn.WaitForKey, &mut index)?;
+    if wait {
+        let mut index = 0;
+        (uefi.BootServices.WaitForEvent)(1, &uefi.ConsoleIn.WaitForKey, &mut index)?;
+    }
 
     let mut key = TextInputKey {
         ScanCode: 0,
@@ -87,7 +89,7 @@ pub fn raw_key() -> Result<TextInputKey> {
     Ok(key)
 }
 
-pub fn key() -> Result<Key> {
-    let raw_key = raw_key()?;
+pub fn key(wait: bool) -> Result<Key> {
+    let raw_key = raw_key(wait)?;
     Ok(Key::from(raw_key))
 }

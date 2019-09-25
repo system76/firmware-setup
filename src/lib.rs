@@ -44,7 +44,7 @@ pub extern "C" fn main() -> Status {
 
     if let Err(err) = fde::Fde::install() {
         println!("Fde error: {:?}", err);
-        let _ = key::key();
+        let _ = key::key(true);
     }
 
     Status(0)

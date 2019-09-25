@@ -924,232 +924,244 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
             display.sync();
 
-            let raw_key = raw_key()?;
-            if ! editing {
-                for hotkey in form.HotKeyListHead.iter() {
-                    let key_data = unsafe { &*hotkey.KeyData };
-                    if key_data.ScanCode == raw_key.ScanCode && key_data.UnicodeChar == raw_key.UnicodeChar {
-                        debugln!("pressed {}", ffi::nstr(hotkey.HelpString));
-                        user_input.Action = hotkey.Action;
-                        user_input.DefaultId = hotkey.DefaultId;
-                        break 'render;
+            let mut key_i = 0;
+            'input: loop {
+                let raw_key = match raw_key(key_i == 0) {
+                    Ok(ok) => ok,
+                    Err(err) => match err {
+                        Error::NotReady => break 'input,
+                        _ => return Err(err),
                     }
-                }
-            }
+                };
 
-            let key = Key::from(raw_key);
-            debugln!("{:?}", key);
-            match key {
-                Key::Enter => {
-                    if let Some(mut element) = elements.get_mut(selected) {
-                        let mut checkbox = false;
-                        {
-                            let statement = unsafe { &(*element.statement_ptr) };
-                            if let Some(op) = statement.OpCode() {
-                                match op.OpCode {
-                                    IfrOpCode::Checkbox => checkbox = true,
-                                    _ => (),
-                                }
-                            }
-                        }
-
-                        if checkbox {
-                            match element.value {
-                                IfrTypeValueEnum::Bool(b) => {
-                                    user_input.SelectedStatement = element.statement_ptr;
-                                    unsafe {
-                                        ptr::copy(
-                                            &(*element.statement_ptr).CurrentValue,
-                                            &mut user_input.InputValue,
-                                            1
-                                        );
-                                    }
-
-                                    let (kind, value) = unsafe {
-                                        IfrTypeValueEnum::Bool(!b).to_union()
-                                    };
-                                    user_input.InputValue.Kind = kind;
-                                    user_input.InputValue.Value = value;
-
-                                    break 'render;
-                                },
-                                other => debugln!("unsupported checkbox value {:?}", other)
-                            }
-                        } else if element.editable && ! editing {
-                            editing = true;
-                        } else {
-                            user_input.SelectedStatement = element.statement_ptr;
-                            unsafe {
-                                ptr::copy(
-                                    &(*element.statement_ptr).CurrentValue,
-                                    &mut user_input.InputValue,
-                                    1
-                                );
-                            }
-                            if editing {
-                                if element.list {
-                                    let mut offset = 0;
-                                    if let Some(ref mut buffer) = element.buffer_opt {
-                                        for option in element.options.iter() {
-                                            macro_rules! copy_option {
-                                                ($x:ident) => ({
-                                                    let next_offset = offset + mem::size_of_val(&$x);
-                                                    if next_offset <= buffer.len() {
-                                                        unsafe {
-                                                            ptr::copy(
-                                                                &$x,
-                                                                buffer.as_mut_ptr().add(offset) as *mut _,
-                                                                1
-                                                            )
-                                                        }
-                                                    }
-                                                    offset = next_offset;
-                                                });
-                                            }
-                                            match option.value {
-                                                IfrTypeValueEnum::U8(u8) => copy_option!(u8),
-                                                IfrTypeValueEnum::U16(u16) => copy_option!(u16),
-                                                IfrTypeValueEnum::U32(u32) => copy_option!(u32),
-                                                IfrTypeValueEnum::U64(u64) => copy_option!(u64),
-                                                other => {
-                                                    debugln!("unsupported option in list: {:?}", other);
-                                                },
-                                            }
-                                        }
-                                        if offset < buffer.len() {
-                                            for i in offset..buffer.len() {
-                                                buffer[i] = 0;
-                                            }
-                                        }
-                                        debugln!("modified: {:?}", buffer);
-                                    } else {
-                                        debugln!("list without buffer");
-                                    }
-                                } else {
-                                    let (kind, value) = unsafe { element.value.to_union() };
-                                    user_input.InputValue.Kind = kind;
-                                    user_input.InputValue.Value = value;
-                                }
-                                editing = false;
-                            }
+                if ! editing {
+                    for hotkey in form.HotKeyListHead.iter() {
+                        let key_data = unsafe { &*hotkey.KeyData };
+                        if key_data.ScanCode == raw_key.ScanCode && key_data.UnicodeChar == raw_key.UnicodeChar {
+                            debugln!("pressed {}", ffi::nstr(hotkey.HelpString));
+                            user_input.Action = hotkey.Action;
+                            user_input.DefaultId = hotkey.DefaultId;
                             break 'render;
                         }
                     }
-                },
-                Key::Escape => {
-                    if editing {
-                        editing = false;
-                        break 'display;
-                    } else {
-                        user_input.Action = 1 << 17;
-                        break 'render;
-                    }
-                },
-                Key::Down => {
-                    if editing {
+                }
+
+                let key = Key::from(raw_key);
+                debugln!("{}: {:?}", key_i, key);
+                match key {
+                    Key::Enter => {
                         if let Some(mut element) = elements.get_mut(selected) {
-                            if element.list {
-                                if element.list_i + 1 < element.options.len() {
-                                    element.list_i += 1;
+                            let mut checkbox = false;
+                            {
+                                let statement = unsafe { &(*element.statement_ptr) };
+                                if let Some(op) = statement.OpCode() {
+                                    match op.OpCode {
+                                        IfrOpCode::Checkbox => checkbox = true,
+                                        _ => (),
+                                    }
+                                }
+                            }
+
+                            if checkbox {
+                                match element.value {
+                                    IfrTypeValueEnum::Bool(b) => {
+                                        user_input.SelectedStatement = element.statement_ptr;
+                                        unsafe {
+                                            ptr::copy(
+                                                &(*element.statement_ptr).CurrentValue,
+                                                &mut user_input.InputValue,
+                                                1
+                                            );
+                                        }
+
+                                        let (kind, value) = unsafe {
+                                            IfrTypeValueEnum::Bool(!b).to_union()
+                                        };
+                                        user_input.InputValue.Kind = kind;
+                                        user_input.InputValue.Value = value;
+
+                                        break 'render;
+                                    },
+                                    other => debugln!("unsupported checkbox value {:?}", other)
+                                }
+                            } else if element.editable && ! editing {
+                                editing = true;
+                            } else {
+                                user_input.SelectedStatement = element.statement_ptr;
+                                unsafe {
+                                    ptr::copy(
+                                        &(*element.statement_ptr).CurrentValue,
+                                        &mut user_input.InputValue,
+                                        1
+                                    );
+                                }
+                                if editing {
+                                    if element.list {
+                                        let mut offset = 0;
+                                        if let Some(ref mut buffer) = element.buffer_opt {
+                                            for option in element.options.iter() {
+                                                macro_rules! copy_option {
+                                                    ($x:ident) => ({
+                                                        let next_offset = offset + mem::size_of_val(&$x);
+                                                        if next_offset <= buffer.len() {
+                                                            unsafe {
+                                                                ptr::copy(
+                                                                    &$x,
+                                                                    buffer.as_mut_ptr().add(offset) as *mut _,
+                                                                    1
+                                                                )
+                                                            }
+                                                        }
+                                                        offset = next_offset;
+                                                    });
+                                                }
+                                                match option.value {
+                                                    IfrTypeValueEnum::U8(u8) => copy_option!(u8),
+                                                    IfrTypeValueEnum::U16(u16) => copy_option!(u16),
+                                                    IfrTypeValueEnum::U32(u32) => copy_option!(u32),
+                                                    IfrTypeValueEnum::U64(u64) => copy_option!(u64),
+                                                    other => {
+                                                        debugln!("unsupported option in list: {:?}", other);
+                                                    },
+                                                }
+                                            }
+                                            if offset < buffer.len() {
+                                                for i in offset..buffer.len() {
+                                                    buffer[i] = 0;
+                                                }
+                                            }
+                                            debugln!("modified: {:?}", buffer);
+                                        } else {
+                                            debugln!("list without buffer");
+                                        }
+                                    } else {
+                                        let (kind, value) = unsafe { element.value.to_union() };
+                                        user_input.InputValue.Kind = kind;
+                                        user_input.InputValue.Value = value;
+                                    }
+                                    editing = false;
+                                }
+                                break 'render;
+                            }
+                        }
+                    },
+                    Key::Escape => {
+                        if editing {
+                            editing = false;
+                            break 'display;
+                        } else {
+                            user_input.Action = 1 << 17;
+                            break 'render;
+                        }
+                    },
+                    Key::Down => {
+                        if editing {
+                            if let Some(mut element) = elements.get_mut(selected) {
+                                if element.list {
+                                    if element.list_i + 1 < element.options.len() {
+                                        element.list_i += 1;
+                                    } else {
+                                        element.list_i = 0;
+                                    }
                                 } else {
-                                    element.list_i = 0;
-                                }
-                            } else {
-                                let i_opt = element.options.iter().position(|o| o.value == element.value);
-                                if let Some(mut i) = i_opt {
-                                    if i + 1 < element.options.len() {
-                                        i += 1;
-                                    } else {
-                                        i = 0;
+                                    let i_opt = element.options.iter().position(|o| o.value == element.value);
+                                    if let Some(mut i) = i_opt {
+                                        if i + 1 < element.options.len() {
+                                            i += 1;
+                                        } else {
+                                            i = 0;
+                                        }
+                                        element.value = element.options[i].value;
                                     }
-                                    element.value = element.options[i].value;
                                 }
                             }
-                        }
-                    } else if selected != !0 {
-                        let start = selected;
-                        loop {
-                            if selected + 1 < elements.len() {
-                                selected += 1;
-                            } else {
-                                selected = 0;
-                            }
-                            if let Some(element) = elements.get(selected) {
-                                if element.selectable {
+                        } else if selected != !0 {
+                            let start = selected;
+                            loop {
+                                if selected + 1 < elements.len() {
+                                    selected += 1;
+                                } else {
+                                    selected = 0;
+                                }
+                                if let Some(element) = elements.get(selected) {
+                                    if element.selectable {
+                                        break;
+                                    }
+                                }
+                                if selected == start {
                                     break;
                                 }
                             }
-                            if selected == start {
-                                break;
-                            }
                         }
-                    }
-                },
-                Key::Up => {
-                    if editing {
-                        if let Some(mut element) = elements.get_mut(selected) {
-                            if element.list {
-                                if element.list_i > 0 {
-                                    element.list_i -= 1;
-                                } else if ! element.options.is_empty() {
-                                    element.list_i = element.options.len() - 1;
-                                }
-                            } else {
-                                let i_opt = element.options.iter().position(|o| o.value == element.value);
-                                if let Some(mut i) = i_opt {
-                                    if i > 0 {
-                                        i -= 1;
-                                    } else {
-                                        i = element.options.len() - 1;
+                    },
+                    Key::Up => {
+                        if editing {
+                            if let Some(mut element) = elements.get_mut(selected) {
+                                if element.list {
+                                    if element.list_i > 0 {
+                                        element.list_i -= 1;
+                                    } else if ! element.options.is_empty() {
+                                        element.list_i = element.options.len() - 1;
                                     }
-                                    element.value = element.options[i].value;
+                                } else {
+                                    let i_opt = element.options.iter().position(|o| o.value == element.value);
+                                    if let Some(mut i) = i_opt {
+                                        if i > 0 {
+                                            i -= 1;
+                                        } else {
+                                            i = element.options.len() - 1;
+                                        }
+                                        element.value = element.options[i].value;
+                                    }
                                 }
                             }
-                        }
-                    } else if selected != !0 {
-                        let start = selected;
-                        loop {
-                            if selected > 0 {
-                                selected -= 1;
-                            } else {
-                                selected = cmp::max(elements.len(), 1) - 1;
-                            }
-                            if let Some(element) = elements.get(selected) {
-                                if element.selectable {
+                        } else if selected != !0 {
+                            let start = selected;
+                            loop {
+                                if selected > 0 {
+                                    selected -= 1;
+                                } else {
+                                    selected = cmp::max(elements.len(), 1) - 1;
+                                }
+                                if let Some(element) = elements.get(selected) {
+                                    if element.selectable {
+                                        break;
+                                    }
+                                }
+                                if selected == start {
                                     break;
                                 }
                             }
-                            if selected == start {
-                                break;
-                            }
                         }
-                    }
-                },
-                Key::PageDown => {
-                    if editing {
-                        if let Some(mut element) = elements.get_mut(selected) {
-                            if element.list {
-                                if element.list_i + 1 < element.options.len() {
-                                    element.options.swap(element.list_i, element.list_i + 1);
-                                    element.list_i += 1;
+                    },
+                    Key::PageDown => {
+                        if editing {
+                            if let Some(mut element) = elements.get_mut(selected) {
+                                if element.list {
+                                    if element.list_i + 1 < element.options.len() {
+                                        element.options.swap(element.list_i, element.list_i + 1);
+                                        element.list_i += 1;
+                                    }
                                 }
                             }
                         }
-                    }
-                },
-                Key::PageUp => {
-                    if editing {
-                        if let Some(mut element) = elements.get_mut(selected) {
-                            if element.list {
-                                if element.list_i > 0 {
-                                    element.list_i -= 1;
-                                    element.options.swap(element.list_i, element.list_i + 1);
+                    },
+                    Key::PageUp => {
+                        if editing {
+                            if let Some(mut element) = elements.get_mut(selected) {
+                                if element.list {
+                                    if element.list_i > 0 {
+                                        element.list_i -= 1;
+                                        element.options.swap(element.list_i, element.list_i + 1);
+                                    }
                                 }
                             }
                         }
-                    }
-                },
-                _ => (),
+                    },
+                    _ => (),
+                }
+
+                key_i += 1;
             }
         }
     }
