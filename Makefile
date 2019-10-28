@@ -4,7 +4,7 @@ export LD=ld
 export RUST_TARGET_PATH=$(CURDIR)/targets
 BUILD=build/$(TARGET)
 
-all: $(BUILD)/boot.img
+all: $(BUILD)/boot.efi
 
 clean:
 	cargo clean
