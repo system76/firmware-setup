@@ -1180,6 +1180,24 @@ extern "win64" fn form_display(form: &Form, user_input: &mut UserInput) -> Statu
 
 extern "win64" fn exit_display() {
     debugln!("exit_display");
+
+    let uefi = unsafe { std::system_table_mut() };
+
+    let mut display = unsafe {
+        if DISPLAY.is_null() {
+            return;
+        }
+        &mut *DISPLAY
+    };
+
+    let background_color = Color::rgb(0x33, 0x30, 0x2F);
+    display.set(background_color);
+    display.sync();
+
+    (uefi.BootServices.Stall)(1_000_000);
+
+    display.set(Color::rgb(0, 0, 0));
+    display.sync();
 }
 
 extern "win64" fn confirm_data_change() -> usize {
