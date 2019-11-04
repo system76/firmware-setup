@@ -31,6 +31,10 @@ impl Write for Debug {
     }
 }
 
+#[cfg(not(feature = "debug"))]
+pub fn _debug(_args: fmt::Arguments) {}
+
+#[cfg(feature = "debug")]
 pub fn _debug(args: fmt::Arguments) {
     Debug.write_fmt(args).unwrap();
 }

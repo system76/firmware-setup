@@ -23,6 +23,10 @@ redox_uefi_std = "0.1.0"
 spin = "0.5"
 #x86 = "0.7"
 
+[features]
+default = []
+debug = []
+
 [patch.crates-io]
 orbclient = { path = "orbclient" }
 redox_uefi = { path = "uefi" }
