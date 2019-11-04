@@ -6,6 +6,8 @@
 #![feature(try_trait)]
 #![allow(non_snake_case)]
 
+#[macro_use]
+extern crate bitflags;
 extern crate coreboot_table;
 extern crate dmi;
 extern crate ecflash;
@@ -14,6 +16,7 @@ extern crate memoffset;
 extern crate orbclient;
 extern crate orbfont;
 extern crate plain;
+extern crate spin;
 #[macro_use]
 extern crate uefi_std as std;
 
@@ -26,11 +29,14 @@ use uefi::status::Status;
 
 #[macro_use]
 mod debug;
+
+mod coreboot;
 mod display;
 mod hii;
 pub mod image;
 mod key;
 pub mod null;
+mod serial;
 pub mod text;
 
 //mod dump_hii;
@@ -41,6 +47,8 @@ pub extern "C" fn main() -> Status {
     let uefi = std::system_table();
 
     let _ = (uefi.BootServices.SetWatchdogTimer)(0, 0, 0, ptr::null());
+
+    coreboot::init();
 
     if let Err(err) = fde::Fde::install() {
         println!("Fde error: {:?}", err);
