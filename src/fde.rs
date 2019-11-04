@@ -8,8 +8,8 @@ use uefi::guid::Guid;
 use uefi::hii::{AnimationId, ImageId, StringId};
 use uefi::hii::database::HiiHandle;
 use uefi::hii::ifr::{
-    HiiDate, HiiRef, HiiTime, HiiValue,
-    IfrOpCode, IfrOpHeader, IfrStatementHeader, IfrTypeKind, IfrTypeValue, IfrTypeValueEnum,
+    HiiValue,
+    IfrOpCode, IfrOpHeader, IfrStatementHeader, IfrTypeValueEnum,
     IfrAction, IfrCheckbox, IfrNumeric, IfrOneOf, IfrOneOfOption, IfrOrderedList, IfrRef, IfrSubtitle
 };
 use uefi::status::{Error, Result, Status};
@@ -336,6 +336,7 @@ struct Element {
     buffer_opt: Option<&'static mut [u8]>,
 }
 
+#[allow(unused_assignments)]
 fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     debugln!();
     debugln!("form_display");
@@ -950,7 +951,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 debugln!("{}: {:?}", key_i, key);
                 match key {
                     Key::Enter => {
-                        if let Some(mut element) = elements.get_mut(selected) {
+                        if let Some(element) = elements.get_mut(selected) {
                             let mut checkbox = false;
                             {
                                 let statement = unsafe { &(*element.statement_ptr) };

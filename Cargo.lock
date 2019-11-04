@@ -106,7 +106,7 @@ dependencies = [
 
 [[package]]
 name = "redox_uefi_std"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "redox_uefi 0.1.0",
  "redox_uefi_alloc 0.1.0",
@@ -123,7 +123,7 @@ dependencies = [
 [[package]]
 name = "rusttype"
 version = "0.7.5"
-source = "git+https://gitlab.redox-os.org/redox-os/rusttype.git?branch=no_std#7700d5e6ba0587a2383a915a6c1934f808e07465"
+source = "git+https://gitlab.redox-os.org/redox-os/rusttype.git?branch=no_std#68146e65ab59cbae38c89eb5543079806e9a465d"
 dependencies = [
  "approx 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "arrayvec 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -173,7 +173,7 @@ dependencies = [
  "redox_dmi 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_hwio 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_uefi 0.1.0",
- "redox_uefi_std 0.1.0",
+ "redox_uefi_std 0.1.1",
  "spin 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

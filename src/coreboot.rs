@@ -1,17 +1,14 @@
 use coreboot_table::{Mapper, PhysicalAddress, Serial, Table, VirtualAddress};
-use hwio::{Mmio, Pio, Io};
 use spin::Mutex;
-
-use crate::serial::SerialPort;
 
 pub struct PhysicalMapper;
 
 impl Mapper for PhysicalMapper {
-    unsafe fn map_aligned(&mut self, address: PhysicalAddress, size: usize) -> Result<VirtualAddress, &'static str> {
+    unsafe fn map_aligned(&mut self, address: PhysicalAddress, _size: usize) -> Result<VirtualAddress, &'static str> {
         Ok(VirtualAddress(address.0))
     }
 
-    unsafe fn unmap_aligned(&mut self, address: VirtualAddress) -> Result<(), &'static str> {
+    unsafe fn unmap_aligned(&mut self, _address: VirtualAddress) -> Result<(), &'static str> {
         Ok(())
     }
 

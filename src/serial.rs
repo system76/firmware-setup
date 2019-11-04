@@ -42,7 +42,7 @@ pub struct SerialPort<T: Io> {
 }
 
 impl SerialPort<Pio<u8>> {
-    pub const fn new(base: u16) -> SerialPort<Pio<u8>> {
+    pub unsafe fn new(base: u16) -> SerialPort<Pio<u8>> {
         SerialPort {
             data: Pio::new(base),
             int_en: Pio::new(base + 1),
@@ -64,7 +64,7 @@ impl SerialPort<Mmio<u32>> {
 impl<T: Io> SerialPort<T>
     where T::Value: From<u8> + TryInto<u8>
 {
-    pub fn init(&mut self) {
+    pub unsafe fn init(&mut self) {
         //TODO: Cleanup
         self.int_en.write(0x00.into());
         self.line_ctrl.write(0x80.into());
@@ -76,13 +76,13 @@ impl<T: Io> SerialPort<T>
         self.int_en.write(0x01.into());
     }
 
-    fn line_sts(&self) -> LineStsFlags {
+    unsafe fn line_sts(&self) -> LineStsFlags {
         LineStsFlags::from_bits_truncate(
             (self.line_sts.read() & 0xFF.into()).try_into().unwrap_or(0)
         )
     }
 
-    pub fn receive(&mut self) -> Option<u8> {
+    pub unsafe fn receive(&mut self) -> Option<u8> {
         if self.line_sts().contains(LineStsFlags::INPUT_FULL) {
             Some(
                 (self.data.read() & 0xFF.into()).try_into().unwrap_or(0)
@@ -92,12 +92,12 @@ impl<T: Io> SerialPort<T>
         }
     }
 
-    pub fn send(&mut self, data: u8) {
+    pub unsafe fn send(&mut self, data: u8) {
         while ! self.line_sts().contains(LineStsFlags::OUTPUT_EMPTY) {}
         self.data.write(data.into());
     }
 
-    pub fn write(&mut self, buf: &[u8]) {
+    pub unsafe fn write(&mut self, buf: &[u8]) {
         for &b in buf {
             match b {
                 8 | 0x7F => {
