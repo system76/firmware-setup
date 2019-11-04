@@ -106,7 +106,7 @@ dependencies = [
 
 [[package]]
 name = "redox_uefi_std"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "redox_uefi 0.1.0",
  "redox_uefi_alloc 0.1.0",
@@ -173,7 +173,7 @@ dependencies = [
  "redox_dmi 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_hwio 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_uefi 0.1.0",
- "redox_uefi_std 0.1.1",
+ "redox_uefi_std 0.1.2",
  "spin 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
