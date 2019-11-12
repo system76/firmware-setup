@@ -317,18 +317,18 @@ static mut FONT: *const Font = ptr::null_mut();
 static mut CHECKBOX_CHECKED: *const Image = ptr::null_mut();
 static mut CHECKBOX_UNCHECKED: *const Image = ptr::null_mut();
 
-struct ElementOption {
+struct ElementOption<'a> {
     option_ptr: *const QuestionOption,
-    prompt: String,
+    prompt: Text<'a>,
     value: IfrTypeValueEnum,
 }
 
-struct Element {
+struct Element<'a> {
     statement_ptr: *const Statement,
     prompt: String,
     help: String,
     value: IfrTypeValueEnum,
-    options: Vec<ElementOption>,
+    options: Vec<ElementOption<'a>>,
     selectable: bool,
     editable: bool,
     list: bool,
@@ -462,9 +462,10 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                         op.Value.to_enum(op.Kind)
                     };
                     debugln!("    {:?}: {:?}", op.Option, value);
+                    let prompt = font.render(&string(op.Option).unwrap_or(String::new()), font_size);
                     options.push(ElementOption {
                         option_ptr,
-                        prompt: string(op.Option).unwrap_or(String::new()),
+                        prompt,
                         value,
                     });
                 }
@@ -772,19 +773,15 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                         y += h + margin_tb;
                     } else if element.list {
                         for (i, option) in element.options.iter().enumerate() {
-                            // TODO: Do not render in drawing loop
-                            let rendered = font.render(&option.prompt, font_size);
                             let highlighted = i == element.list_i;
-                            draw_text_box(&mut display, margin_lr, y, &rendered, highlighted, highlighted);
-                            y += rendered.height() as i32 + margin_tb;
+                            draw_text_box(&mut display, margin_lr, y, &option.prompt, highlighted, highlighted);
+                            y += option.prompt.height() as i32 + margin_tb;
                         }
                     } else {
                         for option in element.options.iter() {
-                            // TODO: Do not render in drawing loop
-                            let rendered = font.render(&option.prompt, font_size);
                             let highlighted = option.value == element.value;
-                            draw_text_box(&mut display, margin_lr, y, &rendered, highlighted, highlighted);
-                            y += rendered.height() as i32 + margin_tb;
+                            draw_text_box(&mut display, margin_lr, y, &option.prompt, highlighted, highlighted);
+                            y += option.prompt.height() as i32 + margin_tb;
                         }
                     }
                 } else {
@@ -823,19 +820,16 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                         let start_y = y;
                         let mut w = 0;
                         for option in element.options.iter() {
-                            let rendered = font.render(&option.prompt, font_size);
-                            draw_text_box(&mut display, x, y, &rendered, false, false);
-                            w = cmp::max(w, rendered.width());
-                            y += rendered.height() as i32 + margin_tb;
+                            draw_text_box(&mut display, x, y, &option.prompt, false, false);
+                            w = cmp::max(w, option.prompt.width());
+                            y += option.prompt.height() as i32 + margin_tb;
                         }
                         if y > start_y {
                             draw_pretty_box(&mut display, x, start_y, w, (y - start_y - margin_tb) as u32, highlighted && editing);
                         }
                         y -= h + margin_tb;
                     } else if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
-                        // TODO: Do not render in drawing loop
-                        let rendered = font.render(&option.prompt, font_size);
-                        draw_text_box(&mut display, x, y, &rendered, true, highlighted && editing);
+                        draw_text_box(&mut display, x, y, &option.prompt, true, highlighted && editing);
                     } else if element.editable {
                         draw_value_box(&mut display, x, y, &element.value, highlighted && editing);
                     }
