@@ -349,6 +349,85 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
          hii_string.string(form.HiiHandle, string_id)
     };
 
+    let mut display = unsafe {
+        if DISPLAY.is_null() {
+            let display = Display::new(Output::one()?);
+            DISPLAY = Box::into_raw(Box::new(display));
+        }
+        &mut *DISPLAY
+    };
+
+    let (display_w, display_h) = (display.width(), display.height());
+
+    let scale = if display_h > 1440 {
+        4
+    } else if display_h > 720 {
+        2
+    } else {
+        1
+    };
+
+    let font = unsafe {
+        if FONT.is_null() {
+            let font = match Font::from_data(FONT_TTF) {
+                Ok(ok) => ok,
+                Err(err) => {
+                    println!("failed to parse font: {}", err);
+                    return Err(Error::NotFound);
+                }
+            };
+            FONT = Box::into_raw(Box::new(font));
+        }
+        &*FONT
+    };
+
+    let checkbox_checked = unsafe {
+        if CHECKBOX_CHECKED.is_null() {
+            let image = match image::bmp::parse(CHECKBOX_CHECKED_BMP) {
+                Ok(ok) => ok,
+                Err(err) => {
+                    println!("failed to parse checkbox checked: {}", err);
+                    return Err(Error::NotFound);
+                }
+            };
+            CHECKBOX_CHECKED = Box::into_raw(Box::new(image));
+        }
+        &*CHECKBOX_CHECKED
+    };
+
+    let checkbox_unchecked = unsafe {
+        if CHECKBOX_UNCHECKED.is_null() {
+            let image = match image::bmp::parse(CHECKBOX_UNCHECKED_BMP) {
+                Ok(ok) => ok,
+                Err(err) => {
+                    println!("failed to parse checkbox unchecked: {}", err);
+                    return Err(Error::NotFound);
+                }
+            };
+            CHECKBOX_UNCHECKED = Box::into_raw(Box::new(image));
+        }
+        &*CHECKBOX_UNCHECKED
+    };
+
+    // Style {
+    let background_color = Color::rgb(0x33, 0x30, 0x2F);
+    let highlight_color = Color::rgb(0xde, 0x88, 0x00);
+    let outline_color = Color::rgba(0xfe, 0xff, 0xff, 0xc4);
+    let text_color = Color::rgb(0xed, 0xed, 0xed);
+
+    let padding_lr = 4 * scale;
+    let padding_tb = 2 * scale;
+
+    let margin_lr = 8 * scale;
+    let margin_tb = 4 * scale;
+
+    let rect_radius = 4; //TODO: does not scale due to hardcoded checkbox image!
+
+    let title_font_size = (20  * scale) as f32;
+    let font_size = (16 * scale) as f32; // (display_h as f32) / 26.0
+    let help_font_size = (12 * scale) as f32;
+    // } Style
+
     'render: loop {
         let mut hotkey_helps = Vec::new();
         for hotkey in form.HotKeyListHead.iter() {
@@ -507,87 +586,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             }
         }
 
-        let mut display = unsafe {
-            if DISPLAY.is_null() {
-                let display = Display::new(Output::one()?);
-                DISPLAY = Box::into_raw(Box::new(display));
-            }
-            &mut *DISPLAY
-        };
-
-        let font = unsafe {
-            if FONT.is_null() {
-                let font = match Font::from_data(FONT_TTF) {
-                    Ok(ok) => ok,
-                    Err(err) => {
-                        println!("failed to parse font: {}", err);
-                        return Err(Error::NotFound);
-                    }
-                };
-                FONT = Box::into_raw(Box::new(font));
-            }
-            &*FONT
-        };
-
-        let checkbox_checked = unsafe {
-            if CHECKBOX_CHECKED.is_null() {
-                let image = match image::bmp::parse(CHECKBOX_CHECKED_BMP) {
-                    Ok(ok) => ok,
-                    Err(err) => {
-                        println!("failed to parse checkbox checked: {}", err);
-                        return Err(Error::NotFound);
-                    }
-                };
-                CHECKBOX_CHECKED = Box::into_raw(Box::new(image));
-            }
-            &*CHECKBOX_CHECKED
-        };
-
-        let checkbox_unchecked = unsafe {
-            if CHECKBOX_UNCHECKED.is_null() {
-                let image = match image::bmp::parse(CHECKBOX_UNCHECKED_BMP) {
-                    Ok(ok) => ok,
-                    Err(err) => {
-                        println!("failed to parse checkbox unchecked: {}", err);
-                        return Err(Error::NotFound);
-                    }
-                };
-                CHECKBOX_UNCHECKED = Box::into_raw(Box::new(image));
-            }
-            &*CHECKBOX_UNCHECKED
-        };
-
         let title_opt = string(form.FormTitle).ok();
         'display: loop {
-            let (display_w, display_h) = (display.width(), display.height());
-
-            let scale = if display_h > 1440 {
-                4
-            } else if display_h > 720 {
-                2
-            } else {
-                1
-            };
-
-            // Style {
-            let background_color = Color::rgb(0x33, 0x30, 0x2F);
-            let highlight_color = Color::rgb(0xde, 0x88, 0x00);
-            let outline_color = Color::rgba(0xfe, 0xff, 0xff, 0xc4);
-            let text_color = Color::rgb(0xed, 0xed, 0xed);
-
-            let padding_lr = 4 * scale;
-            let padding_tb = 2 * scale;
-
-            let margin_lr = 8 * scale;
-            let margin_tb = 4 * scale;
-
-            let rect_radius = 4; //TODO: does not scale due to hardcoded checkbox image!
-
-            let title_font_size = (20  * scale) as f32;
-            let font_size = (16 * scale) as f32; // (display_h as f32) / 26.0
-            let help_font_size = (12 * scale) as f32;
-            // } Style
-
             display.set(background_color);
 
             let draw_pretty_box = |display: &mut Display, x: i32, y: i32, w: u32, h: u32, highlighted: bool| {
