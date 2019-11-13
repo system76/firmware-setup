@@ -744,6 +744,21 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 rendered.height() as i32
             };
 
+            let draw_options_box = |display: &mut Display, x: i32, mut y: i32, element: &Element| {
+                let start_y = y;
+                let mut w = 0;
+                for option in element.options.iter() {
+                    draw_text_box(display, x, y, &option.prompt, false, false);
+                    w = cmp::max(w, option.prompt.width());
+                    y += option.prompt.height() as i32 + margin_tb;
+                }
+                if y > start_y {
+                    draw_pretty_box(display, x, start_y, w, (y - start_y - margin_tb) as u32, false);
+                }
+
+                y
+            };
+
             let mut y = margin_tb;
 
             let (editing_list, editing_value) = elements.get(selected)
@@ -817,16 +832,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
                     let x = display_w as i32 / 2;
                     if element.list {
-                        let start_y = y;
-                        let mut w = 0;
-                        for option in element.options.iter() {
-                            draw_text_box(&mut display, x, y, &option.prompt, false, false);
-                            w = cmp::max(w, option.prompt.width());
-                            y += option.prompt.height() as i32 + margin_tb;
-                        }
-                        if y > start_y {
-                            draw_pretty_box(&mut display, x, start_y, w, (y - start_y - margin_tb) as u32, highlighted && editing);
-                        }
+                        y = draw_options_box(&mut display, x, y, element);
                         y -= h + margin_tb;
                     } else if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
                         draw_text_box(&mut display, x, y, &option.prompt, true, highlighted && editing);
