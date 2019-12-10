@@ -317,18 +317,18 @@ static mut FONT: *const Font = ptr::null_mut();
 static mut CHECKBOX_CHECKED: *const Image = ptr::null_mut();
 static mut CHECKBOX_UNCHECKED: *const Image = ptr::null_mut();
 
-struct ElementOption {
+struct ElementOption<'a> {
     option_ptr: *const QuestionOption,
-    prompt: String,
+    prompt: Text<'a>,
     value: IfrTypeValueEnum,
 }
 
-struct Element {
+struct Element<'a> {
     statement_ptr: *const Statement,
     prompt: String,
     help: String,
     value: IfrTypeValueEnum,
-    options: Vec<ElementOption>,
+    options: Vec<ElementOption<'a>>,
     selectable: bool,
     editable: bool,
     list: bool,
@@ -348,6 +348,85 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     let string = |string_id: StringId| -> Result<String> {
          hii_string.string(form.HiiHandle, string_id)
     };
+
+    let mut display = unsafe {
+        if DISPLAY.is_null() {
+            let display = Display::new(Output::one()?);
+            DISPLAY = Box::into_raw(Box::new(display));
+        }
+        &mut *DISPLAY
+    };
+
+    let (display_w, display_h) = (display.width(), display.height());
+
+    let scale = if display_h > 1440 {
+        4
+    } else if display_h > 720 {
+        2
+    } else {
+        1
+    };
+
+    let font = unsafe {
+        if FONT.is_null() {
+            let font = match Font::from_data(FONT_TTF) {
+                Ok(ok) => ok,
+                Err(err) => {
+                    println!("failed to parse font: {}", err);
+                    return Err(Error::NotFound);
+                }
+            };
+            FONT = Box::into_raw(Box::new(font));
+        }
+        &*FONT
+    };
+
+    let checkbox_checked = unsafe {
+        if CHECKBOX_CHECKED.is_null() {
+            let image = match image::bmp::parse(CHECKBOX_CHECKED_BMP) {
+                Ok(ok) => ok,
+                Err(err) => {
+                    println!("failed to parse checkbox checked: {}", err);
+                    return Err(Error::NotFound);
+                }
+            };
+            CHECKBOX_CHECKED = Box::into_raw(Box::new(image));
+        }
+        &*CHECKBOX_CHECKED
+    };
+
+    let checkbox_unchecked = unsafe {
+        if CHECKBOX_UNCHECKED.is_null() {
+            let image = match image::bmp::parse(CHECKBOX_UNCHECKED_BMP) {
+                Ok(ok) => ok,
+                Err(err) => {
+                    println!("failed to parse checkbox unchecked: {}", err);
+                    return Err(Error::NotFound);
+                }
+            };
+            CHECKBOX_UNCHECKED = Box::into_raw(Box::new(image));
+        }
+        &*CHECKBOX_UNCHECKED
+    };
+
+    // Style {
+    let background_color = Color::rgb(0x33, 0x30, 0x2F);
+    let highlight_color = Color::rgb(0xde, 0x88, 0x00);
+    let outline_color = Color::rgba(0xfe, 0xff, 0xff, 0xc4);
+    let text_color = Color::rgb(0xed, 0xed, 0xed);
+
+    let padding_lr = 4 * scale;
+    let padding_tb = 2 * scale;
+
+    let margin_lr = 8 * scale;
+    let margin_tb = 4 * scale;
+
+    let rect_radius = 4; //TODO: does not scale due to hardcoded checkbox image!
+
+    let title_font_size = (20  * scale) as f32;
+    let font_size = (16 * scale) as f32; // (display_h as f32) / 26.0
+    let help_font_size = (12 * scale) as f32;
+    // } Style
 
     'render: loop {
         let mut hotkey_helps = Vec::new();
@@ -383,9 +462,10 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                         op.Value.to_enum(op.Kind)
                     };
                     debugln!("    {:?}: {:?}", op.Option, value);
+                    let prompt = font.render(&string(op.Option).unwrap_or(String::new()), font_size);
                     options.push(ElementOption {
                         option_ptr,
-                        prompt: string(op.Option).unwrap_or(String::new()),
+                        prompt,
                         value,
                     });
                 }
@@ -507,87 +587,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             }
         }
 
-        let mut display = unsafe {
-            if DISPLAY.is_null() {
-                let display = Display::new(Output::one()?);
-                DISPLAY = Box::into_raw(Box::new(display));
-            }
-            &mut *DISPLAY
-        };
-
-        let font = unsafe {
-            if FONT.is_null() {
-                let font = match Font::from_data(FONT_TTF) {
-                    Ok(ok) => ok,
-                    Err(err) => {
-                        println!("failed to parse font: {}", err);
-                        return Err(Error::NotFound);
-                    }
-                };
-                FONT = Box::into_raw(Box::new(font));
-            }
-            &*FONT
-        };
-
-        let checkbox_checked = unsafe {
-            if CHECKBOX_CHECKED.is_null() {
-                let image = match image::bmp::parse(CHECKBOX_CHECKED_BMP) {
-                    Ok(ok) => ok,
-                    Err(err) => {
-                        println!("failed to parse checkbox checked: {}", err);
-                        return Err(Error::NotFound);
-                    }
-                };
-                CHECKBOX_CHECKED = Box::into_raw(Box::new(image));
-            }
-            &*CHECKBOX_CHECKED
-        };
-
-        let checkbox_unchecked = unsafe {
-            if CHECKBOX_UNCHECKED.is_null() {
-                let image = match image::bmp::parse(CHECKBOX_UNCHECKED_BMP) {
-                    Ok(ok) => ok,
-                    Err(err) => {
-                        println!("failed to parse checkbox unchecked: {}", err);
-                        return Err(Error::NotFound);
-                    }
-                };
-                CHECKBOX_UNCHECKED = Box::into_raw(Box::new(image));
-            }
-            &*CHECKBOX_UNCHECKED
-        };
-
         let title_opt = string(form.FormTitle).ok();
         'display: loop {
-            let (display_w, display_h) = (display.width(), display.height());
-
-            let scale = if display_h > 1440 {
-                4
-            } else if display_h > 720 {
-                2
-            } else {
-                1
-            };
-
-            // Style {
-            let background_color = Color::rgb(0x33, 0x30, 0x2F);
-            let highlight_color = Color::rgb(0xde, 0x88, 0x00);
-            let outline_color = Color::rgba(0xfe, 0xff, 0xff, 0xc4);
-            let text_color = Color::rgb(0xed, 0xed, 0xed);
-
-            let padding_lr = 4 * scale;
-            let padding_tb = 2 * scale;
-
-            let margin_lr = 8 * scale;
-            let margin_tb = 4 * scale;
-
-            let rect_radius = 4; //TODO: does not scale due to hardcoded checkbox image!
-
-            let title_font_size = (20  * scale) as f32;
-            let font_size = (16 * scale) as f32; // (display_h as f32) / 26.0
-            let help_font_size = (12 * scale) as f32;
-            // } Style
-
             display.set(background_color);
 
             let draw_pretty_box = |display: &mut Display, x: i32, y: i32, w: u32, h: u32, highlighted: bool| {
@@ -743,105 +744,71 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 rendered.height() as i32
             };
 
+            let draw_options_box = |display: &mut Display, x: i32, mut y: i32, element: &Element| {
+                let mut w = 0;
+                for option in element.options.iter() {
+                    w = cmp::max(w, option.prompt.width());
+                }
+
+                let start_y = y;
+                for (i, option) in element.options.iter().enumerate() {
+                    let highlighted = i == element.list_i;
+                    if highlighted && editing {
+                        draw_pretty_box(display, x, y, w, option.prompt.height(), true);
+                    }
+                    option.prompt.draw(display, x, y, text_color);
+                    y += option.prompt.height() as i32 + margin_tb;
+                }
+                if y > start_y {
+                    draw_pretty_box(display, x, start_y, w, (y - start_y - margin_tb) as u32, false);
+                }
+
+                y
+            };
+
             let mut y = margin_tb;
 
             let (editing_list, editing_value) = elements.get(selected)
                 .map(|e| (e.list, e.options.is_empty()))
                 .unwrap_or((false, false));
-            if editing && ! editing_value {
-                if let Some(element) = elements.get(selected) {
-                    {
-                        // TODO: Do not render in drawing loop
-                        let rendered = font.render(&element.prompt, title_font_size);
-                        let x = (display_w as i32 - rendered.width() as i32) / 2;
-                        draw_text_box(&mut display, x, y, &rendered, false, false);
-                        y += rendered.height() as i32 + margin_tb;
-                    }
 
-                    display.rect(
-                        0,
-                        y,
-                        display_w,
-                        1,
-                        Color::rgb(0xac, 0xac, 0xac)
-                    );
-                    y += margin_tb * 2;
+            if let Some(ref title) = title_opt {
+                // TODO: Do not render in drawing loop
+                let rendered = font.render(&title, title_font_size);
+                let x = (display_w as i32 - rendered.width() as i32) / 2;
+                draw_text_box(&mut display, x, y, &rendered, false, false);
+                y += rendered.height() as i32 + margin_tb;
+            }
 
-                    if element.options.is_empty() {
-                        let h = draw_value_box(&mut display, margin_lr, y, &element.value, true);
-                        y += h + margin_tb;
-                    } else if element.list {
-                        for (i, option) in element.options.iter().enumerate() {
-                            // TODO: Do not render in drawing loop
-                            let rendered = font.render(&option.prompt, font_size);
-                            let highlighted = i == element.list_i;
-                            draw_text_box(&mut display, margin_lr, y, &rendered, highlighted, highlighted);
-                            y += rendered.height() as i32 + margin_tb;
-                        }
-                    } else {
-                        for option in element.options.iter() {
-                            // TODO: Do not render in drawing loop
-                            let rendered = font.render(&option.prompt, font_size);
-                            let highlighted = option.value == element.value;
-                            draw_text_box(&mut display, margin_lr, y, &rendered, highlighted, highlighted);
-                            y += rendered.height() as i32 + margin_tb;
-                        }
-                    }
-                } else {
-                    editing = false;
-                    continue 'display;
-                }
-            } else {
-                if let Some(ref title) = title_opt {
+            display.rect(
+                0,
+                y,
+                display_w,
+                1,
+                Color::rgb(0xac, 0xac, 0xac)
+            );
+            y += margin_tb * 2;
+
+            for (i, element) in elements.iter().enumerate() {
+                let highlighted = i == selected;
+                let h = {
                     // TODO: Do not render in drawing loop
-                    let rendered = font.render(&title, title_font_size);
-                    let x = (display_w as i32 - rendered.width() as i32) / 2;
-                    draw_text_box(&mut display, x, y, &rendered, false, false);
-                    y += rendered.height() as i32 + margin_tb;
+                    let rendered = font.render(&element.prompt, font_size);
+                    draw_text_box(&mut display, margin_lr, y, &rendered, highlighted && ! editing, highlighted && ! editing);
+                    rendered.height() as i32
+                };
+
+                let x = display_w as i32 / 2;
+                if element.list {
+                    y = draw_options_box(&mut display, x, y, element);
+                    y -= h + margin_tb;
+                } else if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
+                    draw_text_box(&mut display, x, y, &option.prompt, true, highlighted && editing);
+                } else if element.editable {
+                    draw_value_box(&mut display, x, y, &element.value, highlighted && editing);
                 }
 
-                display.rect(
-                    0,
-                    y,
-                    display_w,
-                    1,
-                    Color::rgb(0xac, 0xac, 0xac)
-                );
-                y += margin_tb * 2;
-
-                for (i, element) in elements.iter().enumerate() {
-                    let highlighted = i == selected;
-                    let h = {
-                        // TODO: Do not render in drawing loop
-                        let rendered = font.render(&element.prompt, font_size);
-                        draw_text_box(&mut display, margin_lr, y, &rendered, highlighted, highlighted && ! editing);
-                        rendered.height() as i32
-                    };
-
-                    let x = display_w as i32 / 2;
-                    if element.list {
-                        let start_y = y;
-                        let mut w = 0;
-                        for option in element.options.iter() {
-                            let rendered = font.render(&option.prompt, font_size);
-                            draw_text_box(&mut display, x, y, &rendered, false, false);
-                            w = cmp::max(w, rendered.width());
-                            y += rendered.height() as i32 + margin_tb;
-                        }
-                        if y > start_y {
-                            draw_pretty_box(&mut display, x, start_y, w, (y - start_y - margin_tb) as u32, highlighted && editing);
-                        }
-                        y -= h + margin_tb;
-                    } else if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
-                        // TODO: Do not render in drawing loop
-                        let rendered = font.render(&option.prompt, font_size);
-                        draw_text_box(&mut display, x, y, &rendered, true, highlighted && editing);
-                    } else if element.editable {
-                        draw_value_box(&mut display, x, y, &element.value, highlighted && editing);
-                    }
-
-                    y += h + margin_tb;
-                }
+                y += h + margin_tb;
             }
 
             // Draw footer
