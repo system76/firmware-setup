@@ -835,14 +835,14 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 };
 
                 if editing {
-                    render_hotkey_help("Esc=Exit Entry");
+                    render_hotkey_help("Esc=Discard Changes");
                 } else {
                     render_hotkey_help("Esc=Exit");
                 }
                 if selected == !0 {
                     render_hotkey_help("");
                 } else if editing {
-                    render_hotkey_help("Enter=Complete Entry");
+                    render_hotkey_help("Enter=Save Changes");
                 } else {
                     render_hotkey_help("Enter=Select Entry");
                 }
