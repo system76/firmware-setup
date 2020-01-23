@@ -291,6 +291,8 @@ pub struct Form {
     pub ErrorString: *const u16,
 }
 
+const FRONT_PAGE_FORM_ID: u16 = 0x1000;
+
 #[repr(C)]
 pub struct UserInput {
     pub SelectedStatement: *const Statement,
@@ -836,6 +838,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
                 if editing {
                     render_hotkey_help("Esc=Discard Changes");
+                } else if form.FormId == FRONT_PAGE_FORM_ID {
+                    render_hotkey_help("");
                 } else {
                     render_hotkey_help("Esc=Exit");
                 }
