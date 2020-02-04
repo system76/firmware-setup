@@ -1021,7 +1021,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                         if editing {
                             editing = false;
                             break 'display;
-                        } else {
+                        } else if form.FormId != FRONT_PAGE_FORM_ID {
                             user_input.Action = 1 << 17;
                             break 'render;
                         }
