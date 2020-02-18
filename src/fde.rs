@@ -412,7 +412,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     };
 
     // Style {
-    let background_color = Color::rgb(0x33, 0x30, 0x2F);
+    let background_color = Color::rgb(0x36, 0x32, 0x2F);
     let highlight_color = Color::rgb(0xde, 0x88, 0x00);
     let outline_color = Color::rgba(0xfe, 0xff, 0xff, 0xc4);
     let text_color = Color::rgb(0xed, 0xed, 0xed);
