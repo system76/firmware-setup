@@ -413,9 +413,10 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
     // Style {
     let background_color = Color::rgb(0x36, 0x32, 0x2F);
-    let highlight_color = Color::rgb(0xde, 0x88, 0x00);
+    let highlight_color = Color::rgb(0xFB, 0xB8, 0x6C);
     let outline_color = Color::rgba(0xfe, 0xff, 0xff, 0xc4);
-    let text_color = Color::rgb(0xed, 0xed, 0xed);
+    let text_color = Color::rgb(0xCC, 0xCC, 0xCC);
+    let highlight_text_color = Color::rgb(0x27, 0x27, 0x27);
 
     let padding_lr = 4 * scale;
     let padding_tb = 2 * scale;
@@ -716,6 +717,11 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 if pretty_box {
                     draw_pretty_box(display, x, y, rendered.width(), rendered.height(), highlighted);
                 }
+                let text_color = if highlighted {
+                    highlight_text_color
+                } else {
+                    text_color
+                };
                 rendered.draw(display, x, y, text_color);
             };
 
@@ -758,6 +764,11 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     if highlighted && editing {
                         draw_pretty_box(display, x, y, w, option.prompt.height(), true);
                     }
+                    let text_color = if highlighted && editing {
+                        highlight_text_color
+                    } else {
+                        text_color
+                    };
                     option.prompt.draw(display, x, y, text_color);
                     y += option.prompt.height() as i32 + margin_tb;
                 }
