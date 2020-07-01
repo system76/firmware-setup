@@ -291,7 +291,7 @@ pub struct Form {
     pub ErrorString: *const u16,
 }
 
-const FRONT_PAGE_FORM_ID: u16 = 0x1000;
+const FRONT_PAGE_FORM_ID: u16 = 0x7600;
 
 #[repr(C)]
 pub struct UserInput {
