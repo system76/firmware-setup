@@ -71,7 +71,8 @@ $(BUILD)/boot.o: $(BUILD)/boot.a
 
 $(BUILD)/boot.a: Cargo.lock Cargo.toml res/* src/* src/*/*
 	mkdir -p $(BUILD)
-	cargo xrustc \
+	cargo rustc \
+		-Z build-std=core,alloc \
 		--lib \
 		--target $(TARGET) \
 		--release \

@@ -113,6 +113,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "rlibc"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "rustc_version"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -174,6 +179,7 @@ dependencies = [
  "redox_hwio 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "redox_uefi 0.1.0",
  "redox_uefi_std 0.1.2",
+ "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "spin 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -191,6 +197,7 @@ dependencies = [
 "checksum plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 "checksum redox_dmi 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4f00f61bcf7b6946ecd3e65f5871fb6b689680e59513eaa9a4d020bb73aa7fb7"
 "checksum redox_hwio 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9c5c3085fd5054b1f2ad35668f7c60031e6a7cb05d82477f936ac700d24d4477"
+"checksum rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"
 "checksum rustc_version 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 "checksum rusttype 0.7.5 (git+https://gitlab.redox-os.org/redox-os/rusttype.git?branch=no_std)" = "<none>"
 "checksum semver 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1d7eb9ef2c18661902cc47e535f9bc51b78acd254da71d375c2f6720d9a40403"
