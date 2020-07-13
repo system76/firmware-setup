@@ -19,6 +19,7 @@ extern crate plain;
 extern crate spin;
 #[macro_use]
 extern crate uefi_std as std;
+extern crate rlibc;
 
 #[allow(unused_imports)]
 #[prelude_import]
