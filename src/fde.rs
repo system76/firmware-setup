@@ -431,6 +431,10 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     let help_font_size = (12 * scale) as f32;
     // } Style
 
+    // TODO: Better calculation of maximum number of elements that can be displayed
+    let form_body_height = display_h - title_font_size as u32 - help_font_size as u32 - margin_tb as u32 * 4 - padding_tb as u32 * 4;
+    let max_form_elements = (form_body_height / (font_size as u32 + margin_tb as u32 + padding_tb as u32)) as usize;
+
     'render: loop {
         let mut hotkey_helps = Vec::new();
         for hotkey in form.HotKeyListHead.iter() {
@@ -591,6 +595,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
         }
 
         let title_opt = string(form.FormTitle).ok();
+        let mut element_start = 0;
         'display: loop {
             display.set(background_color);
 
@@ -802,26 +807,34 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             );
             y += margin_tb * 2;
 
-            for (i, element) in elements.iter().enumerate() {
-                let highlighted = i == selected;
-                let h = {
-                    // TODO: Do not render in drawing loop
-                    let rendered = font.render(&element.prompt, font_size);
-                    draw_text_box(&mut display, margin_lr, y, &rendered, highlighted && ! editing, highlighted && ! editing);
-                    rendered.height() as i32
-                };
+            if element_start > 0 {
+                // Draw up arrow to indicate more items above
+                let arrow = font.render("↑", help_font_size);
+                draw_text_box(&mut display, (display_w - arrow.width()) as i32 - margin_lr, y, &arrow, false, false);
+            }
 
-                let x = display_w as i32 / 2;
-                if element.list {
-                    y = draw_options_box(&mut display, x, y, element);
-                    y -= h + margin_tb;
-                } else if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
-                    draw_text_box(&mut display, x, y, &option.prompt, true, highlighted && editing);
-                } else if element.editable {
-                    draw_value_box(&mut display, x, y, &element.value, highlighted && editing);
+            for i in element_start..(element_start + max_form_elements) {
+                if let Some(element) = elements.get(i) {
+                    let highlighted = i == selected;
+                    let h = {
+                        // TODO: Do not render in drawing loop
+                        let rendered = font.render(&element.prompt, font_size);
+                        draw_text_box(&mut display, margin_lr, y, &rendered, highlighted && ! editing, highlighted && ! editing);
+                        rendered.height() as i32
+                    };
+
+                    let x = display_w as i32 / 2;
+                    if element.list {
+                        y = draw_options_box(&mut display, x, y, element);
+                        y -= h + margin_tb;
+                    } else if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
+                        draw_text_box(&mut display, x, y, &option.prompt, true, highlighted && editing);
+                    } else if element.editable {
+                        draw_value_box(&mut display, x, y, &element.value, highlighted && editing);
+                    }
+
+                    y += h + margin_tb;
                 }
-
-                y += h + margin_tb;
             }
 
             // Draw footer
@@ -904,6 +917,11 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 }
             }
 
+            if elements.len() > max_form_elements && element_start < elements.len() - max_form_elements {
+                // Draw down arrow to indicate more items below
+                let arrow = font.render("↓", help_font_size);
+                draw_text_box(&mut display, (display_w - arrow.width()) as i32 - margin_lr, y - arrow.height() as i32 - margin_tb * 2, &arrow, false, false);
+            }
 
             display.sync();
 
@@ -1075,6 +1093,12 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                                     break;
                                 }
                             }
+                            if selected == 0 {
+                                // Handle wrapping
+                                element_start = 0;
+                            } else if selected - element_start >= max_form_elements {
+                                element_start = selected - max_form_elements + 1;
+                            }
                         }
                     },
                     Key::Up => {
@@ -1114,6 +1138,16 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                                 if selected == start {
                                     break;
                                 }
+                            }
+                            if selected <= element_start {
+                                element_start = selected;
+                            } else if selected == elements.len() - 1 {
+                                // Handle wrapping
+                                element_start = if selected >= max_form_elements {
+                                    selected - max_form_elements + 1
+                                } else {
+                                    0
+                                };
                             }
                         }
                     },
