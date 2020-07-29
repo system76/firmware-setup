@@ -901,19 +901,21 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
 
                 if let Some(element) = elements.get(selected) {
-                    let rendered = font.render(&element.help, help_font_size);
-                    let x = (display_w as i32 - rendered.width() as i32) / 2;
-                    y -= rendered.height() as i32 + margin_tb;
-                    draw_text_box(&mut display, x, y, &rendered, false, false);
+                    if !element.help.trim().is_empty() {
+                        let rendered = font.render(&element.help, help_font_size);
+                        let x = (display_w as i32 - rendered.width() as i32) / 2;
+                        y -= rendered.height() as i32 + margin_tb;
+                        draw_text_box(&mut display, x, y, &rendered, false, false);
 
-                    y -= margin_tb * 3 / 2;
-                    display.rect(
-                        0,
-                        y,
-                        display_w,
-                        1,
-                        Color::rgb(0xac, 0xac, 0xac)
-                    );
+                        y -= margin_tb * 3 / 2;
+                        display.rect(
+                            0,
+                            y,
+                            display_w,
+                            1,
+                            Color::rgb(0xac, 0xac, 0xac)
+                        );
+                    }
                 }
             }
 
