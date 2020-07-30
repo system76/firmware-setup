@@ -791,6 +791,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 .map(|e| (e.list, e.options.is_empty()))
                 .unwrap_or((false, false));
 
+            // Draw header
             if let Some(ref title) = title_opt {
                 // TODO: Do not render in drawing loop
                 let rendered = font.render(&title, title_font_size);
@@ -807,36 +808,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 Color::rgb(0xac, 0xac, 0xac)
             );
             y += margin_tb * 2;
-
-            if element_start > 0 {
-                // Draw up arrow to indicate more items above
-                let arrow = font.render("↑", help_font_size);
-                draw_text_box(&mut display, (display_w - arrow.width()) as i32 - margin_lr, y, &arrow, false, false);
-            }
-
-            for i in element_start..(element_start + max_form_elements) {
-                if let Some(element) = elements.get(i) {
-                    let highlighted = i == selected;
-                    let h = {
-                        // TODO: Do not render in drawing loop
-                        let rendered = font.render(&element.prompt, font_size);
-                        draw_text_box(&mut display, margin_lr, y, &rendered, highlighted && ! editing, highlighted && ! editing);
-                        rendered.height() as i32
-                    };
-
-                    let x = display_w as i32 / 2;
-                    if element.list {
-                        y = draw_options_box(&mut display, x, y, element);
-                        y -= h + margin_tb;
-                    } else if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
-                        draw_text_box(&mut display, x, y, &option.prompt, true, highlighted && editing);
-                    } else if element.editable {
-                        draw_value_box(&mut display, x, y, &element.value, highlighted && editing);
-                    }
-
-                    y += h + margin_tb;
-                }
-            }
 
             // Draw footer
             {
@@ -898,7 +869,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     Color::rgb(0xac, 0xac, 0xac)
                 );
 
-
                 if let Some(element) = elements.get(selected) {
                     if !element.help.trim().is_empty() {
                         let rendered = font.render(&element.help, help_font_size);
@@ -915,6 +885,37 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                             Color::rgb(0xac, 0xac, 0xac)
                         );
                     }
+                }
+            }
+
+            // Draw body
+            if element_start > 0 {
+                // Draw up arrow to indicate more items above
+                let arrow = font.render("↑", help_font_size);
+                draw_text_box(&mut display, (display_w - arrow.width()) as i32 - margin_lr, y, &arrow, false, false);
+            }
+
+            for i in element_start..(element_start + max_form_elements) {
+                if let Some(element) = elements.get(i) {
+                    let highlighted = i == selected;
+                    let h = {
+                        // TODO: Do not render in drawing loop
+                        let rendered = font.render(&element.prompt, font_size);
+                        draw_text_box(&mut display, margin_lr, y, &rendered, highlighted && ! editing, highlighted && ! editing);
+                        rendered.height() as i32
+                    };
+
+                    let x = display_w as i32 / 2;
+                    if element.list {
+                        y = draw_options_box(&mut display, x, y, element);
+                        y -= h + margin_tb;
+                    } else if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
+                        draw_text_box(&mut display, x, y, &option.prompt, true, highlighted && editing);
+                    } else if element.editable {
+                        draw_value_box(&mut display, x, y, &element.value, highlighted && editing);
+                    }
+
+                    y += h + margin_tb;
                 }
             }
 
