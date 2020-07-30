@@ -431,10 +431,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     let help_font_size = (12 * scale) as f32;
     // } Style
 
-    // TODO: Better calculation of maximum number of elements that can be displayed
-    let form_body_height = display_h - title_font_size as u32 - help_font_size as u32 - margin_tb as u32 * 4 - padding_tb as u32 * 4;
-    let max_form_elements = (form_body_height / (font_size as u32 + margin_tb as u32 + padding_tb as u32)) as usize;
-
     'render: loop {
         let mut hotkey_helps = Vec::new();
         for hotkey in form.HotKeyListHead.iter() {
@@ -889,6 +885,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             }
 
             // Draw body
+            let max_form_elements = ((bottom_y - y) / (font_size as i32 + margin_tb)) as usize;
+
             if element_start > 0 {
                 // Draw up arrow to indicate more items above
                 let arrow = font.render("↑", help_font_size);
