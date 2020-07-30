@@ -785,6 +785,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             };
 
             let mut y = margin_tb;
+            let mut bottom_y = display_h as i32;
 
             let (editing_list, editing_value) = elements.get(selected)
                 .map(|e| (e.list, e.options.is_empty()))
@@ -839,14 +840,12 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
             // Draw footer
             {
-                y = display_h as i32;
-
                 let mut i = 0;
                 let mut render_hotkey_help = |help: &str| {
                     let rendered = font.render(help, help_font_size);
                     let x = match i % 3 {
                         0 => {
-                            y -= rendered.height() as i32 + margin_tb;
+                            bottom_y -= rendered.height() as i32 + margin_tb;
                             (display_w as i32) * 2 / 3 + margin_lr
                         },
                         1 =>  {
@@ -856,7 +855,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                             margin_lr
                         }
                     };
-                    draw_text_box(&mut display, x, y, &rendered, false, false);
+                    draw_text_box(&mut display, x, bottom_y, &rendered, false, false);
                     i += 1;
                 };
 
@@ -890,10 +889,10 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     }
                 }
 
-                y -= margin_tb * 3 / 2;
+                bottom_y -= margin_tb * 3 / 2;
                 display.rect(
                     0,
-                    y,
+                    bottom_y,
                     display_w,
                     1,
                     Color::rgb(0xac, 0xac, 0xac)
@@ -904,13 +903,13 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     if !element.help.trim().is_empty() {
                         let rendered = font.render(&element.help, help_font_size);
                         let x = (display_w as i32 - rendered.width() as i32) / 2;
-                        y -= rendered.height() as i32 + margin_tb;
-                        draw_text_box(&mut display, x, y, &rendered, false, false);
+                        bottom_y -= rendered.height() as i32 + margin_tb;
+                        draw_text_box(&mut display, x, bottom_y, &rendered, false, false);
 
-                        y -= margin_tb * 3 / 2;
+                        bottom_y -= margin_tb * 3 / 2;
                         display.rect(
                             0,
-                            y,
+                            bottom_y,
                             display_w,
                             1,
                             Color::rgb(0xac, 0xac, 0xac)
@@ -922,7 +921,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             if elements.len() > max_form_elements && element_start < elements.len() - max_form_elements {
                 // Draw down arrow to indicate more items below
                 let arrow = font.render("↓", help_font_size);
-                draw_text_box(&mut display, (display_w - arrow.width()) as i32 - margin_lr, y - arrow.height() as i32 - margin_tb * 2, &arrow, false, false);
+                draw_text_box(&mut display, (display_w - arrow.width()) as i32 - margin_lr, bottom_y - arrow.height() as i32 - margin_tb * 2, &arrow, false, false);
             }
 
             display.sync();
