@@ -282,7 +282,7 @@ pub struct Form {
     pub FormTitle: StringId,
     pub Attribute: u32,
     pub SettingChangedFlag: bool,
-    pub HighlightedStatement: *const Statement,
+    pub HighLightedStatement: *const Statement,
     pub FormRefreshEvent: Event,
     pub HotKeyListHead: ListHead<HotKey>,
     pub ImageId: ImageId,
@@ -538,8 +538,9 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     }
                     Some(buffer)
                 };
-                if statement_ptr == form.HighlightedStatement || (selected == !0 && selectable) {
+                if statement_ptr == form.HighLightedStatement || (selected == !0 && selectable) {
                     selected = elements.len();
+                    debugln!("selected {}", selected);
                 }
                 elements.push(Element {
                     statement_ptr,
