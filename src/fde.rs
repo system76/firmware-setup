@@ -841,7 +841,9 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 } else {
                     render_hotkey_help("Enter=Select Entry");
                 }
-                if ! editing || ! editing_value {
+                if selected == !0 {
+                    render_hotkey_help("");
+                } else if ! editing || ! editing_value {
                     render_hotkey_help("↑↓=Move Highlight");
                 }
 
