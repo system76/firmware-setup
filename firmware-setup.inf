@@ -14,5 +14,5 @@
   VALID_ARCHITECTURES           = X64
 
 [Binaries.X64]
-  PE32|build/x86_64-efi-pe/boot.efi|*
+  PE32|build/x86_64-uefi-pe/boot.efi|*
 
