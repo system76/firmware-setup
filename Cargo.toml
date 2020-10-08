@@ -3,11 +3,6 @@ name = "system76_firmware_setup"
 version = "1.0.0"
 edition = "2018"
 
-[lib]
-name = "system76_firmware_setup"
-path = "src/lib.rs"
-crate-type = ["staticlib"]
-
 [profile.release]
 lto = true
 

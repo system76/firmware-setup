@@ -1,4 +1,4 @@
-TARGET?=x86_64-efi-pe
+TARGET?=x86_64-uefi-pe
 
 export LD=ld
 export RUST_TARGET_PATH=$(CURDIR)/targets
@@ -40,40 +40,10 @@ $(BUILD)/efi.img: $(BUILD)/boot.efi
 	mcopy -i $@.tmp res/startup.nsh ::startup.nsh
 	mv $@.tmp $@
 
-$(BUILD)/boot.efi: $(BUILD)/boot.o
-	$(LD) \
-		-m i386pep \
-		--oformat pei-x86-64 \
-		--dll \
-		--image-base 0 \
-		--section-alignment 32 \
-		--file-alignment 32 \
-		--major-os-version 0 \
-		--minor-os-version 0 \
-		--major-image-version 0 \
-		--minor-image-version 0 \
-		--major-subsystem-version 0 \
-		--minor-subsystem-version 0 \
-		--subsystem 11 \
-		--heap 0,0 \
-		--stack 0,0 \
-		--pic-executable \
-		--entry _start \
-		--no-insert-timestamp \
-		$< -o $@
-		#--subsystem 10
-
-$(BUILD)/boot.o: $(BUILD)/boot.a
-	rm -rf $(BUILD)/boot
-	mkdir $(BUILD)/boot
-	cd $(BUILD)/boot && ar x ../boot.a
-	ld -r $(BUILD)/boot/*.o -o $@
-
-$(BUILD)/boot.a: Cargo.lock Cargo.toml res/* src/* src/*/*
+$(BUILD)/boot.efi: Cargo.lock Cargo.toml res/* src/* src/*/*
 	mkdir -p $(BUILD)
 	cargo rustc \
 		-Z build-std=core,alloc \
-		--lib \
 		--target $(TARGET) \
 		--release \
 		-- \
