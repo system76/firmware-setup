@@ -78,7 +78,6 @@ $(BUILD)/boot.a: Cargo.lock Cargo.toml res/* src/* src/*/*
 		--release \
 		-- \
 		-C soft-float \
-		-C lto \
 		--emit link=$@
 
 BINUTILS=2.28.1
