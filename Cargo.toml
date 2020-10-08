@@ -8,6 +8,9 @@ name = "system76_firmware_setup"
 path = "src/lib.rs"
 crate-type = ["staticlib"]
 
+[profile.release]
+lto = true
+
 [dependencies]
 bitflags = "1.2"
 coreboot-table = { git = "https://gitlab.redox-os.org/redox-os/coreboot-table.git" }
