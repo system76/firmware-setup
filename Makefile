@@ -1,4 +1,4 @@
-TARGET?=x86_64-uefi-pe
+TARGET?=x86_64-unknown-uefi-drv
 
 export LD=ld
 export RUST_TARGET_PATH=$(CURDIR)/targets
