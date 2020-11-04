@@ -293,6 +293,9 @@ pub struct Form {
 
 const FRONT_PAGE_FORM_ID: u16 = 0x7600;
 
+const BROWSER_ACTION_NONE: u32 = 1 << 16;
+const BROWSER_ACTION_FORM_EXIT: u32 = 1 << 17;
+
 #[repr(C)]
 pub struct UserInput {
     pub SelectedStatement: *const Statement,
@@ -336,6 +339,32 @@ struct Element<'a> {
     list: bool,
     list_i: usize,
     buffer_opt: Option<&'static mut [u8]>,
+}
+
+#[derive(PartialEq)]
+enum EventType {
+    Driver,
+    Keyboard,
+}
+
+fn wait_for_events(form: &Form) -> Result<EventType>  {
+    let uefi = std::system_table();
+    let mut index = 0;
+    let mut events = Vec::new();
+
+    events.push(uefi.ConsoleIn.WaitForKey);
+
+    if form.FormRefreshEvent != Event(0) {
+        events.push(form.FormRefreshEvent);
+    }
+
+    (uefi.BootServices.WaitForEvent)(events.len(), events.as_mut_ptr(), &mut index)?;
+
+    if index == 0 {
+        Ok(EventType::Keyboard)
+    } else {
+        Ok(EventType::Driver)
+    }
 }
 
 #[allow(unused_assignments)]
@@ -928,9 +957,15 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
             display.sync();
 
-            let mut key_i = 0;
+            let signaled = wait_for_events(form)?;
+            if signaled == EventType::Driver {
+                user_input.Action = BROWSER_ACTION_NONE;
+                break 'render;
+            }
+
+            // Consume all queued key presses
             'input: loop {
-                let raw_key = match raw_key(key_i == 0) {
+                let raw_key = match raw_key(false) {
                     Ok(ok) => ok,
                     Err(err) => match err {
                         Error::NotReady => break 'input,
@@ -951,7 +986,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 }
 
                 let key = Key::from(raw_key);
-                debugln!("{}: {:?}", key_i, key);
+                debugln!("{:?}", key);
                 match key {
                     Key::Enter => {
                         if let Some(element) = elements.get_mut(selected) {
@@ -1054,7 +1089,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                             editing = false;
                             break 'display;
                         } else if form.FormId != FRONT_PAGE_FORM_ID {
-                            user_input.Action = 1 << 17;
+                            user_input.Action = BROWSER_ACTION_FORM_EXIT;
                             break 'render;
                         }
                     },
@@ -1180,8 +1215,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     },
                     _ => (),
                 }
-
-                key_i += 1;
             }
         }
     }
