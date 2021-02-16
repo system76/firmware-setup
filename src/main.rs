@@ -2,7 +2,6 @@
 
 #![no_std]
 #![no_main]
-#![feature(llvm_asm)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
 #![feature(prelude_import)]
@@ -33,9 +32,7 @@ mod display;
 mod hii;
 pub mod image;
 mod key;
-pub mod null;
 mod serial;
-pub mod text;
 
 //mod dump_hii;
 mod fde;
