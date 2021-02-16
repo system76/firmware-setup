@@ -19,6 +19,12 @@ redox_hwio = { version = "0.1.6", default-features = false }
 redox_uefi_std = "0.1.9"
 spin = "0.9.4"
 
+[dependencies.system76_ectool]
+git = "https://github.com/system76/ec.git"
+branch = "rpl"
+default-features = false
+features = ["redox_hwio"]
+
 [features]
 default = []
 debug = []

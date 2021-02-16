@@ -2,6 +2,7 @@
 
 #![no_std]
 #![no_main]
+#![feature(asm)]
 #![feature(core_intrinsics)]
 #![feature(prelude_import)]
 #![feature(try_trait_v2)]
@@ -30,10 +31,13 @@ mod display;
 mod hii;
 pub mod image;
 mod key;
+mod rng;
 mod serial;
 
 //mod dump_hii;
 mod fde;
+mod security;
+mod ui;
 
 #[no_mangle]
 pub extern "C" fn main() -> Status {
@@ -45,6 +49,11 @@ pub extern "C" fn main() -> Status {
 
     if let Err(err) = fde::Fde::install() {
         println!("Fde error: {:?}", err);
+        let _ = key::key(true);
+    }
+
+    if let Err(err) = security::install() {
+        debugln!("security error: {:?}", err);
         let _ = key::key(true);
     }
 

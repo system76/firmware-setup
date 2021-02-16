@@ -3,7 +3,7 @@
 use core::prelude::v1::derive;
 use core::ops::FromResidual;
 use orbclient::{Color, Renderer};
-use orbfont::{Font, Text};
+use orbfont::Text;
 use std::{char, cmp, ffi, mem, ptr, slice};
 use std::ops::Try;
 use std::proto::Protocol;
@@ -20,8 +20,8 @@ use std::uefi::status::{Error, Result, Status};
 use std::uefi::text::TextInputKey;
 
 use crate::display::{Display, Output};
-use crate::image::{self, Image};
 use crate::key::{raw_key, Key};
+use crate::ui::Ui;
 
 // TODO: Move to uefi library {
 pub const HII_STRING_PROTOCOL_GUID: Guid = Guid(0xfd96974, 0x23aa, 0x4cdc, [0xb9, 0xcb, 0x98, 0xd1, 0x77, 0x50, 0x32, 0x2a]);
@@ -317,15 +317,7 @@ pub struct Fde {
     pub ConfirmDataChange: extern "win64" fn() -> usize,
 }
 
-
-static FONT_TTF: &[u8] = include_bytes!("../res/FiraSans-Regular.ttf");
-static CHECKBOX_CHECKED_BMP: &[u8] = include_bytes!("../res/checkbox_checked.bmp");
-static CHECKBOX_UNCHECKED_BMP: &[u8] = include_bytes!("../res/checkbox_unchecked.bmp");
-
 static mut DISPLAY: *mut Display = ptr::null_mut();
-static mut FONT: *const Font = ptr::null_mut();
-static mut CHECKBOX_CHECKED: *const Image = ptr::null_mut();
-static mut CHECKBOX_UNCHECKED: *const Image = ptr::null_mut();
 
 #[allow(dead_code)]
 struct ElementOption<'a> {
@@ -402,67 +394,16 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
         1
     };
 
-    let font = unsafe {
-        if FONT.is_null() {
-            let font = match Font::from_data(FONT_TTF) {
-                Ok(ok) => ok,
-                Err(err) => {
-                    println!("failed to parse font: {}", err);
-                    return Err(Error::NotFound);
-                }
-            };
-            FONT = Box::into_raw(Box::new(font));
-        }
-        &*FONT
-    };
-
-    let checkbox_checked = unsafe {
-        if CHECKBOX_CHECKED.is_null() {
-            let image = match image::bmp::parse(CHECKBOX_CHECKED_BMP) {
-                Ok(ok) => ok,
-                Err(err) => {
-                    println!("failed to parse checkbox checked: {}", err);
-                    return Err(Error::NotFound);
-                }
-            };
-            CHECKBOX_CHECKED = Box::into_raw(Box::new(image));
-        }
-        &*CHECKBOX_CHECKED
-    };
-
-    let checkbox_unchecked = unsafe {
-        if CHECKBOX_UNCHECKED.is_null() {
-            let image = match image::bmp::parse(CHECKBOX_UNCHECKED_BMP) {
-                Ok(ok) => ok,
-                Err(err) => {
-                    println!("failed to parse checkbox unchecked: {}", err);
-                    return Err(Error::NotFound);
-                }
-            };
-            CHECKBOX_UNCHECKED = Box::into_raw(Box::new(image));
-        }
-        &*CHECKBOX_UNCHECKED
-    };
-
     // Style {
-    let background_color = Color::rgb(0x36, 0x32, 0x2F);
-    let highlight_color = Color::rgb(0xFB, 0xB8, 0x6C);
-    let outline_color = Color::rgba(0xfe, 0xff, 0xff, 0xc4);
-    let text_color = Color::rgb(0xCC, 0xCC, 0xCC);
-    let highlight_text_color = Color::rgb(0x27, 0x27, 0x27);
-
-    let padding_lr = 4 * scale;
-    let padding_tb = 2 * scale;
-
     let margin_lr = 8 * scale;
     let margin_tb = 4 * scale;
-
-    let rect_radius = 4; //TODO: does not scale due to hardcoded checkbox image!
 
     let title_font_size = (20  * scale) as f32;
     let font_size = (16 * scale) as f32; // (display_h as f32) / 26.0
     let help_font_size = (12 * scale) as f32;
     // } Style
+
+    let ui = Ui::new()?;
 
     'render: loop {
         let mut hotkey_helps = Vec::new();
@@ -498,7 +439,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                         op.Value.to_enum(op.Kind)
                     };
                     debugln!("    {:?}: {:?}", op.Option, value);
-                    let prompt = font.render(&string(op.Option).unwrap_or_default(), font_size);
+                    let prompt = ui.font.render(&string(op.Option).unwrap_or_default(), font_size);
                     options.push(ElementOption {
                         option_ptr,
                         prompt,
@@ -627,148 +568,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
         let title_opt = string(form.FormTitle).ok();
         let mut element_start = 0;
         'display: loop {
-            display.set(background_color);
-
-            let draw_pretty_box = |display: &mut Display, x: i32, y: i32, w: u32, h: u32, highlighted: bool| {
-                let checkbox = if highlighted {
-                    // Center
-                    display.rect(
-                        x - padding_lr,
-                        y - padding_tb + rect_radius,
-                        w + padding_lr as u32 * 2,
-                        h + (padding_tb - rect_radius) as u32 * 2,
-                        highlight_color
-                    );
-
-                    // Top middle
-                    display.rect(
-                        x - padding_lr + rect_radius,
-                        y - padding_tb,
-                        w + (padding_lr - rect_radius) as u32 * 2,
-                        rect_radius as u32,
-                        highlight_color,
-                    );
-
-                    // Bottom middle
-                    display.rect(
-                        x - padding_lr + rect_radius,
-                        y + h as i32 + padding_tb - rect_radius,
-                        w + (padding_lr - rect_radius) as u32 * 2,
-                        rect_radius as u32,
-                        highlight_color,
-                    );
-
-                    checkbox_checked
-                } else {
-                    // Top middle
-                    display.rect(
-                        x - padding_lr + rect_radius,
-                        y - padding_tb,
-                        w + (padding_lr - rect_radius) as u32 * 2,
-                        2,
-                        outline_color
-                    );
-
-                    // Bottom middle
-                    display.rect(
-                        x - padding_lr + rect_radius,
-                        y + h as i32 + padding_tb - 2,
-                        w + (padding_lr - rect_radius) as u32 * 2,
-                        2,
-                        outline_color
-                    );
-
-                    // Left middle
-                    display.rect(
-                        x - padding_lr,
-                        y - padding_tb + rect_radius,
-                        2,
-                        h + (padding_tb - rect_radius) as u32 * 2,
-                        outline_color
-                    );
-
-                    // Right middle
-                    display.rect(
-                        x + w as i32 + padding_lr - 2,
-                        y - padding_tb + rect_radius,
-                        2,
-                        h + (padding_tb - rect_radius) as u32 * 2,
-                        outline_color
-                    );
-
-                    checkbox_unchecked
-                };
-
-                // Top left
-                checkbox.roi(
-                    0,
-                    0,
-                    rect_radius as u32,
-                    rect_radius as u32
-                ).draw(
-                    display,
-                    x - padding_lr,
-                    y - padding_tb
-                );
-
-                // Top right
-                checkbox.roi(
-                    checkbox.width() - rect_radius as u32,
-                    0,
-                    rect_radius as u32,
-                    rect_radius as u32
-                ).draw(
-                    display,
-                    x + w as i32 + padding_lr - rect_radius,
-                    y - padding_tb
-                );
-
-                // Bottom left
-                checkbox.roi(
-                    0,
-                    checkbox.height() - rect_radius as u32,
-                    rect_radius as u32,
-                    rect_radius as u32
-                ).draw(
-                    display,
-                    x - padding_lr,
-                    y + h as i32 + padding_tb - rect_radius
-                );
-
-                // Bottom right
-                checkbox.roi(
-                    checkbox.width() - rect_radius as u32,
-                    checkbox.height() - rect_radius as u32,
-                    rect_radius as u32,
-                    rect_radius as u32
-                ).draw(
-                    display,
-                    x + w as i32 + padding_lr - rect_radius,
-                    y + h as i32 + padding_tb - rect_radius
-                );
-            };
-
-            let draw_text_box = |display: &mut Display, x: i32, y: i32, rendered: &Text, pretty_box: bool, highlighted: bool| {
-                if pretty_box {
-                    draw_pretty_box(display, x, y, rendered.width(), rendered.height(), highlighted);
-                }
-                let text_color = if highlighted {
-                    highlight_text_color
-                } else {
-                    text_color
-                };
-                rendered.draw(display, x, y, text_color);
-            };
-
-            let draw_check_box = |display: &mut Display, x: i32, y: i32, value: bool| -> i32 {
-                let checkbox = if value {
-                    checkbox_checked
-                } else {
-                    checkbox_unchecked
-                };
-                checkbox.draw(display, x, y);
-                checkbox.height() as i32
-            };
+            display.set(ui.background_color);
 
             let draw_value_box = |display: &mut Display, x: i32, y: i32, value: &IfrTypeValueEnum, highlighted: bool| -> i32 {
                 //TODO: Do not format in drawing loop
@@ -777,13 +577,13 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     IfrTypeValueEnum::U16(value) => format!("{}", value),
                     IfrTypeValueEnum::U32(value) => format!("{}", value),
                     IfrTypeValueEnum::U64(value) => format!("{}", value),
-                    IfrTypeValueEnum::Bool(value) => return draw_check_box(display, x, y, *value),
+                    IfrTypeValueEnum::Bool(value) => return ui.draw_check_box(display, x, y, *value),
                     other => format!("{:?}", other),
                 };
 
                 // TODO: Do not render in drawing loop
-                let rendered = font.render(&value_string, font_size);
-                draw_text_box(display, x, y, &rendered, true, highlighted);
+                let rendered = ui.font.render(&value_string, font_size);
+                ui.draw_text_box(display, x, y, &rendered, true, highlighted);
                 rendered.height() as i32
             };
 
@@ -797,18 +597,18 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 for (i, option) in element.options.iter().enumerate() {
                     let highlighted = i == element.list_i;
                     if highlighted && editing {
-                        draw_pretty_box(display, x, y, w, option.prompt.height(), true);
+                        ui.draw_pretty_box(display, x, y, w, option.prompt.height(), true);
                     }
                     let text_color = if highlighted && editing {
-                        highlight_text_color
+                        ui.highlight_text_color
                     } else {
-                        text_color
+                        ui.text_color
                     };
                     option.prompt.draw(display, x, y, text_color);
                     y += option.prompt.height() as i32 + margin_tb;
                 }
                 if y > start_y {
-                    draw_pretty_box(display, x, start_y, w, (y - start_y - margin_tb) as u32, false);
+                    ui.draw_pretty_box(display, x, start_y, w, (y - start_y - margin_tb) as u32, false);
                 }
 
                 y
@@ -824,9 +624,9 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             // Draw header
             if let Some(ref title) = title_opt {
                 // TODO: Do not render in drawing loop
-                let rendered = font.render(title, title_font_size);
+                let rendered = ui.font.render(title, title_font_size);
                 let x = (display_w as i32 - rendered.width() as i32) / 2;
-                draw_text_box(display, x, y, &rendered, false, false);
+                ui.draw_text_box(display, x, y, &rendered, false, false);
                 y += rendered.height() as i32 + margin_tb;
             }
 
@@ -843,7 +643,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             {
                 let mut i = 0;
                 let mut render_hotkey_help = |help: &str| {
-                    let rendered = font.render(help, help_font_size);
+                    let rendered = ui.font.render(help, help_font_size);
                     let x = match i % 3 {
                         0 => {
                             bottom_y -= rendered.height() as i32 + margin_tb;
@@ -856,7 +656,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                             margin_lr
                         }
                     };
-                    draw_text_box(display, x, bottom_y, &rendered, false, false);
+                    ui.draw_text_box(display, x, bottom_y, &rendered, false, false);
                     i += 1;
                 };
 
@@ -903,10 +703,10 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
                 if let Some(element) = elements.get(selected) {
                     if !element.help.trim().is_empty() {
-                        let rendered = font.render(&element.help, help_font_size);
+                        let rendered = ui.font.render(&element.help, help_font_size);
                         let x = (display_w as i32 - rendered.width() as i32) / 2;
                         bottom_y -= rendered.height() as i32 + margin_tb;
-                        draw_text_box(display, x, bottom_y, &rendered, false, false);
+                        ui.draw_text_box(display, x, bottom_y, &rendered, false, false);
 
                         bottom_y -= margin_tb * 3 / 2;
                         display.rect(
@@ -925,8 +725,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
             if element_start > 0 {
                 // Draw up arrow to indicate more items above
-                let arrow = font.render("↑", help_font_size);
-                draw_text_box(display, (display_w - arrow.width()) as i32 - margin_lr, y, &arrow, false, false);
+                let arrow = ui.font.render("↑", help_font_size);
+                ui.draw_text_box(display, (display_w - arrow.width()) as i32 - margin_lr, y, &arrow, false, false);
             }
 
             for i in element_start..(element_start + max_form_elements) {
@@ -935,8 +735,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     // TODO: Do not render in drawing loop
                     let mut h = 0;
                     for line in element.prompt.lines() {
-                        let rendered = font.render(&line, font_size);
-                        draw_text_box(display, margin_lr, y + h, &rendered, highlighted && ! editing, highlighted && ! editing);
+                        let rendered = ui.font.render(&line, font_size);
+                        ui.draw_text_box(display, margin_lr, y + h, &rendered, highlighted && ! editing, highlighted && ! editing);
                         h += rendered.height() as i32;
                     }
                     if h == 0 {
@@ -948,7 +748,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                         y = draw_options_box(display, x, y, element);
                         y -= h + margin_tb;
                     } else if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
-                        draw_text_box(display, x, y, &option.prompt, true, highlighted && editing);
+                        ui.draw_text_box(display, x, y, &option.prompt, true, highlighted && editing);
                     } else if element.editable {
                         draw_value_box(display, x, y, &element.value, highlighted && editing);
                     }
@@ -959,8 +759,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
             if elements.len() > max_form_elements && element_start < elements.len() - max_form_elements {
                 // Draw down arrow to indicate more items below
-                let arrow = font.render("↓", help_font_size);
-                draw_text_box(display, (display_w - arrow.width()) as i32 - margin_lr, bottom_y - arrow.height() as i32 - margin_tb * 2, &arrow, false, false);
+                let arrow = ui.font.render("↓", help_font_size);
+                ui.draw_text_box(display, (display_w - arrow.width()) as i32 - margin_lr, bottom_y - arrow.height() as i32 - margin_tb * 2, &arrow, false, false);
             }
 
             display.sync();
