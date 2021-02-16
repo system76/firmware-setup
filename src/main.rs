@@ -11,18 +11,12 @@
 
 #[macro_use]
 extern crate bitflags;
-extern crate coreboot_table;
-extern crate dmi;
-extern crate ecflash;
 #[macro_use]
 extern crate memoffset;
-extern crate orbclient;
-extern crate orbfont;
-extern crate plain;
-extern crate spin;
+// Included for memory intrinsics
+extern crate rlibc;
 #[macro_use]
 extern crate uefi_std as std;
-extern crate rlibc;
 
 #[allow(unused_imports)]
 #[prelude_import]
