@@ -41,6 +41,12 @@ version = "0.1.6"
 source = "git+https://gitlab.redox-os.org/redox-os/coreboot-table.git#4b5543dc864cdc4ab721a9c9445b22e2224e8907"
 
 [[package]]
+name = "downcast-rs"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
+
+[[package]]
 name = "js-sys"
 version = "0.3.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -241,6 +247,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "system76_ectool"
+version = "0.3.8"
+source = "git+https://github.com/system76/ec.git?branch=rpl#625118ab17381a419fcef8823b3a072bfd91144b"
+dependencies = [
+ "downcast-rs",
+ "redox_hwio",
+]
+
+[[package]]
 name = "system76_firmware_setup"
 version = "1.0.0"
 dependencies = [
@@ -254,6 +269,7 @@ dependencies = [
  "redox_hwio",
  "redox_uefi_std",
  "spin",
+ "system76_ectool",
 ]
 
 [[package]]
