@@ -1,19 +1,7 @@
-[submodule "uefi"]
-	path = uefi
-	url = https://gitlab.redox-os.org/redox-os/uefi.git
-	branch = master
-[submodule "uefi_alloc"]
-	path = uefi_alloc
-	url = https://gitlab.redox-os.org/redox-os/uefi_alloc.git
-	branch = master
 [submodule "orbfont"]
 	path = orbfont
 	url = https://gitlab.redox-os.org/redox-os/orbfont.git
 	branch = no_std
-[submodule "uefi_std"]
-	path = uefi_std
-	url = https://gitlab.redox-os.org/redox-os/uefi_std.git
-	branch = master
 [submodule "orbclient"]
 	path = orbclient
 	url = https://gitlab.redox-os.org/redox-os/orbclient.git

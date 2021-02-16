@@ -138,7 +138,7 @@ pub trait ListEntryObject<T> {
 }
 
 macro_rules! list_entry {
-    ($t:ty, $l:tt) => (
+    ($t:ident, $l:tt) => (
         impl ListEntryObject<$t> for ListEntry<$t> {
             unsafe fn object(&self) -> &$t {
                 self.object_at(offset_of!($t, $l))

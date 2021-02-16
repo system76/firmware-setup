@@ -21,7 +21,7 @@
   "panic-strategy": "abort",
   "pre-link-args": {
     "lld-link": [
-      "/entry:_start",
+      "/entry:efi_main",
       "/heap:0,0",
       "/stack:0,0",
       "/dll",

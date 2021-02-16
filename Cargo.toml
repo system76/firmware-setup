@@ -8,20 +8,18 @@ license = "GPL-3.0-only"
 lto = true
 
 [dependencies]
-bitflags = "1.2"
+bitflags = "1.2.1"
 coreboot-table = { git = "https://gitlab.redox-os.org/redox-os/coreboot-table.git" }
-memoffset = "0.3"
-orbclient = { version = "0.3.21", features = ["no_std"] }
+memoffset = "0.6.1"
+orbclient = { version = "=0.3.21", features = ["no_std"] }
 orbfont = { path = "orbfont", features = ["no_std"] }
 plain = "0.2.3"
-redox_dmi = "0.1.1"
+redox_dmi = "0.1.5"
 redox_hwio = "0.1.3"
-redox_uefi = "0.1.0"
-redox_uefi_std = "0.1.3"
-spin = "0.5"
-system76_ecflash = { git = "https://github.com/system76/ecflash.git" }
-#x86 = "0.7"
-rlibc = "1.0"
+redox_uefi = "0.1.1"
+redox_uefi_std = "0.1.4"
+spin = "0.7.1"
+rlibc = "1.0.0"
 
 [features]
 default = []
@@ -29,6 +27,3 @@ debug = []
 
 [patch.crates-io]
 orbclient = { path = "orbclient" }
-redox_uefi = { path = "uefi" }
-redox_uefi_alloc = { path = "uefi_alloc" }
-redox_uefi_std = { path = "uefi_std" }
