@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use core::convert::TryInto;
 use hwio::{Io, Pio, Mmio, ReadOnly};
 

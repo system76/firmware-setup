@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use coreboot_table::{Mapper, PhysicalAddress, Serial, Table, VirtualAddress};
 use spin::Mutex;
 
