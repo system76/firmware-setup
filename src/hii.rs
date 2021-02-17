@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use std::proto::Protocol;
 use uefi::hii::database::HiiDatabase;
 use uefi::guid::{Guid, HII_DATABASE_GUID};

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use orbclient::{Color, Renderer};
 use orbfont::{Font, Text};
 use std::{char, cmp, ffi, mem, ptr, slice};

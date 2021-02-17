@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 use hwio::{Io, Pio};
 use std::{char, mem, ptr, str};
 use std::ops::Try;
