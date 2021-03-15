@@ -6,7 +6,5 @@ sudo apt-get install \
     mtools \
     parted
 
-# Ensure the correct toolchain is installed
+# Ensure the correct toolchain and components are installed
 rustup show
-# Install required components
-rustup component add rust-src
