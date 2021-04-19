@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use core::char;
+use core::prelude::v1::derive;
 use uefi::status::Result;
 use uefi::text::TextInputKey;
 
