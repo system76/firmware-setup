@@ -12,8 +12,6 @@
 extern crate bitflags;
 #[macro_use]
 extern crate memoffset;
-// Included for memory intrinsics
-extern crate rlibc;
 #[macro_use]
 extern crate uefi_std as std;
 
