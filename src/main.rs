@@ -2,10 +2,10 @@
 
 #![no_std]
 #![no_main]
-#![feature(const_fn)]
 #![feature(core_intrinsics)]
 #![feature(prelude_import)]
-#![feature(try_trait)]
+#![feature(try_trait_v2)]
+#![feature(control_flow_enum)]
 #![allow(non_snake_case)]
 
 #[macro_use]

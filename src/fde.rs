@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+use core::prelude::v1::derive;
+use core::ops::FromResidual;
 use orbclient::{Color, Renderer};
 use orbfont::{Font, Text};
 use std::{char, cmp, ffi, mem, ptr, slice};
@@ -1228,8 +1230,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
 extern "win64" fn form_display(form: &Form, user_input: &mut UserInput) -> Status {
     match form_display_inner(form, user_input) {
-        Ok(()) => Status::from_ok(0),
-        Err(err) => Status::from_error(err),
+        Ok(()) => Status::from_output(0),
+        Err(err) => Status::from_residual(err),
     }
 }
 
