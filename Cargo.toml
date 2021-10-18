@@ -19,7 +19,6 @@ redox_hwio = "0.1.4"
 redox_uefi = "0.1.2"
 redox_uefi_std = "0.1.5"
 spin = "0.7.1"
-rlibc = "1.0.0"
 
 [features]
 default = []
