@@ -89,6 +89,7 @@ pub struct ListEntry<T> {
     Blink: *mut ListEntry<T>,
 }
 
+#[allow(dead_code)]
 impl<T> ListEntry<T> {
     pub fn previous(&self) -> Option<&Self> {
         if self.Blink.is_null() {
@@ -317,15 +318,16 @@ pub struct Fde {
 }
 
 
-static FONT_TTF: &'static [u8] = include_bytes!("../res/FiraSans-Regular.ttf");
-static CHECKBOX_CHECKED_BMP: &'static [u8] = include_bytes!("../res/checkbox_checked.bmp");
-static CHECKBOX_UNCHECKED_BMP: &'static [u8] = include_bytes!("../res/checkbox_unchecked.bmp");
+static FONT_TTF: &[u8] = include_bytes!("../res/FiraSans-Regular.ttf");
+static CHECKBOX_CHECKED_BMP: &[u8] = include_bytes!("../res/checkbox_checked.bmp");
+static CHECKBOX_UNCHECKED_BMP: &[u8] = include_bytes!("../res/checkbox_unchecked.bmp");
 
 static mut DISPLAY: *mut Display = ptr::null_mut();
 static mut FONT: *const Font = ptr::null_mut();
 static mut CHECKBOX_CHECKED: *const Image = ptr::null_mut();
 static mut CHECKBOX_UNCHECKED: *const Image = ptr::null_mut();
 
+#[allow(dead_code)]
 struct ElementOption<'a> {
     option_ptr: *const QuestionOption,
     prompt: Text<'a>,
@@ -354,9 +356,7 @@ enum EventType {
 fn wait_for_events(form: &Form) -> Result<EventType>  {
     let uefi = std::system_table();
     let mut index = 0;
-    let mut events = Vec::new();
-
-    events.push(uefi.ConsoleIn.WaitForKey);
+    let mut events = vec![uefi.ConsoleIn.WaitForKey];
 
     if form.FormRefreshEvent != Event(0) {
         events.push(form.FormRefreshEvent);
@@ -384,7 +384,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
          hii_string.string(form.HiiHandle, string_id)
     };
 
-    let mut display = unsafe {
+    let display: &mut Display = unsafe {
         if DISPLAY.is_null() {
             let display = Display::new(Output::one()?);
             DISPLAY = Box::into_raw(Box::new(display));
@@ -498,7 +498,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                         op.Value.to_enum(op.Kind)
                     };
                     debugln!("    {:?}: {:?}", op.Option, value);
-                    let prompt = font.render(&string(op.Option).unwrap_or(String::new()), font_size);
+                    let prompt = font.render(&string(op.Option).unwrap_or_default(), font_size);
                     options.push(ElementOption {
                         option_ptr,
                         prompt,
@@ -577,8 +577,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 }
                 elements.push(Element {
                     statement_ptr,
-                    prompt: string(header.Prompt).unwrap_or(String::new()),
-                    help: string(header.Help).unwrap_or(String::new()),
+                    prompt: string(header.Prompt).unwrap_or_default(),
+                    help: string(header.Help).unwrap_or_default(),
                     value,
                     options,
                     selectable,
@@ -824,9 +824,9 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             // Draw header
             if let Some(ref title) = title_opt {
                 // TODO: Do not render in drawing loop
-                let rendered = font.render(&title, title_font_size);
+                let rendered = font.render(title, title_font_size);
                 let x = (display_w as i32 - rendered.width() as i32) / 2;
-                draw_text_box(&mut display, x, y, &rendered, false, false);
+                draw_text_box(display, x, y, &rendered, false, false);
                 y += rendered.height() as i32 + margin_tb;
             }
 
@@ -856,7 +856,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                             margin_lr
                         }
                     };
-                    draw_text_box(&mut display, x, bottom_y, &rendered, false, false);
+                    draw_text_box(display, x, bottom_y, &rendered, false, false);
                     i += 1;
                 };
 
@@ -888,7 +888,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     }
                 } else {
                     for hotkey_help in hotkey_helps.iter() {
-                        render_hotkey_help(&hotkey_help);
+                        render_hotkey_help(hotkey_help);
                     }
                 }
 
@@ -906,7 +906,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                         let rendered = font.render(&element.help, help_font_size);
                         let x = (display_w as i32 - rendered.width() as i32) / 2;
                         bottom_y -= rendered.height() as i32 + margin_tb;
-                        draw_text_box(&mut display, x, bottom_y, &rendered, false, false);
+                        draw_text_box(display, x, bottom_y, &rendered, false, false);
 
                         bottom_y -= margin_tb * 3 / 2;
                         display.rect(
@@ -926,7 +926,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             if element_start > 0 {
                 // Draw up arrow to indicate more items above
                 let arrow = font.render("↑", help_font_size);
-                draw_text_box(&mut display, (display_w - arrow.width()) as i32 - margin_lr, y, &arrow, false, false);
+                draw_text_box(display, (display_w - arrow.width()) as i32 - margin_lr, y, &arrow, false, false);
             }
 
             for i in element_start..(element_start + max_form_elements) {
@@ -935,18 +935,18 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     let h = {
                         // TODO: Do not render in drawing loop
                         let rendered = font.render(&element.prompt, font_size);
-                        draw_text_box(&mut display, margin_lr, y, &rendered, highlighted && ! editing, highlighted && ! editing);
+                        draw_text_box(display, margin_lr, y, &rendered, highlighted && ! editing, highlighted && ! editing);
                         rendered.height() as i32
                     };
 
                     let x = display_w as i32 / 2;
                     if element.list {
-                        y = draw_options_box(&mut display, x, y, element);
+                        y = draw_options_box(display, x, y, element);
                         y -= h + margin_tb;
                     } else if let Some(option) = element.options.iter().find(|o| o.value == element.value) {
-                        draw_text_box(&mut display, x, y, &option.prompt, true, highlighted && editing);
+                        draw_text_box(display, x, y, &option.prompt, true, highlighted && editing);
                     } else if element.editable {
-                        draw_value_box(&mut display, x, y, &element.value, highlighted && editing);
+                        draw_value_box(display, x, y, &element.value, highlighted && editing);
                     }
 
                     y += h + margin_tb;
@@ -956,7 +956,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             if elements.len() > max_form_elements && element_start < elements.len() - max_form_elements {
                 // Draw down arrow to indicate more items below
                 let arrow = font.render("↓", help_font_size);
-                draw_text_box(&mut display, (display_w - arrow.width()) as i32 - margin_lr, bottom_y - arrow.height() as i32 - margin_tb * 2, &arrow, false, false);
+                draw_text_box(display, (display_w - arrow.width()) as i32 - margin_lr, bottom_y - arrow.height() as i32 - margin_tb * 2, &arrow, false, false);
             }
 
             display.sync();
@@ -998,6 +998,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                             {
                                 let statement = unsafe { &(*element.statement_ptr) };
                                 if let Some(op) = statement.OpCode() {
+                                    #[allow(clippy::single_match)]
                                     match op.OpCode {
                                         IfrOpCode::Checkbox => checkbox = true,
                                         _ => (),
@@ -1196,11 +1197,9 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     Key::PageDown => {
                         if editing {
                             if let Some(mut element) = elements.get_mut(selected) {
-                                if element.list {
-                                    if element.list_i + 1 < element.options.len() {
-                                        element.options.swap(element.list_i, element.list_i + 1);
-                                        element.list_i += 1;
-                                    }
+                                if element.list && element.list_i + 1 < element.options.len() {
+                                    element.options.swap(element.list_i, element.list_i + 1);
+                                    element.list_i += 1;
                                 }
                             }
                         }
@@ -1208,11 +1207,9 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     Key::PageUp => {
                         if editing {
                             if let Some(mut element) = elements.get_mut(selected) {
-                                if element.list {
-                                    if element.list_i > 0 {
-                                        element.list_i -= 1;
-                                        element.options.swap(element.list_i, element.list_i + 1);
-                                    }
+                                if element.list && element.list_i > 0 {
+                                    element.list_i -= 1;
+                                    element.options.swap(element.list_i, element.list_i + 1);
                                 }
                             }
                         }

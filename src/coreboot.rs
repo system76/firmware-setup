@@ -23,6 +23,7 @@ pub static COREBOOT_SERIAL: Mutex<Option<Serial>> = Mutex::new(None);
 
 pub fn init() {
     let _ = coreboot_table::tables(|table| {
+        #[allow(clippy::single_match)]
         match table {
             Table::Serial(serial) => {
                 *COREBOOT_SERIAL.lock() = Some(serial.clone());

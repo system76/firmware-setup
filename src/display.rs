@@ -32,9 +32,9 @@ impl Display {
         let w = output.0.Mode.Info.HorizontalResolution;
         let h = output.0.Mode.Info.VerticalResolution;
         Self {
-            output: output,
-            w: w,
-            h: h,
+            output,
+            w,
+            h,
             data: vec![Color::rgb(0, 0, 0); w as usize * h as usize].into_boxed_slice(),
             mode: Cell::new(Mode::Blend),
         }

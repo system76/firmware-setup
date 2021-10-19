@@ -64,6 +64,7 @@ impl SerialPort<Mmio<u32>> {
     }
 }
 
+#[allow(dead_code)]
 impl<T: Io> SerialPort<T>
     where T::Value: From<u8> + TryInto<u8>
 {
