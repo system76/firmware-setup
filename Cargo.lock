@@ -22,9 +22,9 @@ dependencies = [
 
 [[package]]
 name = "autocfg"
-version = "1.0.1"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
+checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "bitflags"
@@ -41,13 +41,13 @@ checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 [[package]]
 name = "coreboot-table"
 version = "0.1.6"
-source = "git+https://gitlab.redox-os.org/redox-os/coreboot-table.git#df19cf3dc77fa827cc920c5e29b919c1e5029dc1"
+source = "git+https://gitlab.redox-os.org/redox-os/coreboot-table.git#4b5543dc864cdc4ab721a9c9445b22e2224e8907"
 
 [[package]]
 name = "memoffset"
-version = "0.6.4"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59accc507f1338036a0477ef61afdae33cde60840f4dfe481319ce3ad116ddf9"
+checksum = "5aa361d4faea93603064a027415f07bd8e1d5c88c9fbf68bf56a285428fd79ce"
 dependencies = [
  "autocfg",
 ]
@@ -111,24 +111,24 @@ checksum = "2b3b8075af56e2600f1bc43e97cb3911b8320d89d39a6215739c3cfff91af016"
 
 [[package]]
 name = "redox_uefi"
-version = "0.1.2"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c63a3180c5aba47178029b21c1615fbdf87d2bf682669708ea15e9c71eb8935"
+checksum = "0c483e82899e79d50a4ad1a5eb8f3fc918e9b37b0387d85510fa4cf21d2e3dda"
 
 [[package]]
 name = "redox_uefi_alloc"
-version = "0.1.2"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "524f31a58708b6d0ba2d4e734c1dcf14d287307b09118ff07ef25dd504773c7c"
+checksum = "09eebe4aab0f8207676234160ffd94cb6c8660694079449ded0eea6a4e27ede1"
 dependencies = [
  "redox_uefi",
 ]
 
 [[package]]
 name = "redox_uefi_std"
-version = "0.1.5"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32a520781d9bb97c9802dd196e7a550fafaeea62d94b2351422c3424981d3a2d"
+checksum = "5ecc253339d4dc0606421b6118458ef45c184d76ccdc8e20296cdaddf2e401ae"
 dependencies = [
  "redox_uefi",
  "redox_uefi_alloc",
