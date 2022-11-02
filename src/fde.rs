@@ -7,17 +7,17 @@ use orbfont::{Font, Text};
 use std::{char, cmp, ffi, mem, ptr, slice};
 use std::ops::Try;
 use std::proto::Protocol;
-use uefi::Event;
-use uefi::guid::Guid;
-use uefi::hii::{AnimationId, ImageId, StringId};
-use uefi::hii::database::HiiHandle;
-use uefi::hii::ifr::{
+use std::uefi::Event;
+use std::uefi::guid::Guid;
+use std::uefi::hii::{AnimationId, ImageId, StringId};
+use std::uefi::hii::database::HiiHandle;
+use std::uefi::hii::ifr::{
     HiiValue,
     IfrOpCode, IfrOpHeader, IfrStatementHeader, IfrTypeValueEnum,
     IfrAction, IfrCheckbox, IfrNumeric, IfrOneOf, IfrOneOfOption, IfrOrderedList, IfrRef, IfrSubtitle
 };
-use uefi::status::{Error, Result, Status};
-use uefi::text::TextInputKey;
+use std::uefi::status::{Error, Result, Status};
+use std::uefi::text::TextInputKey;
 
 use crate::display::{Display, Output};
 use crate::image::{self, Image};

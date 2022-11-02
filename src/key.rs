@@ -2,8 +2,8 @@
 
 use core::char;
 use core::prelude::v1::derive;
-use uefi::status::Result;
-use uefi::text::TextInputKey;
+use std::uefi::status::Result;
+use std::uefi::text::TextInputKey;
 
 #[derive(Debug)]
 pub enum Key {
