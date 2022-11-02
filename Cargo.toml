@@ -16,7 +16,6 @@ orbfont = { version = "0.1.11", default-features = false, features = ["no-std"] 
 plain = "0.2.3"
 redox_dmi = "0.1.5"
 redox_hwio = { version = "0.1.6", default-features = false }
-redox_uefi = "0.1.8"
 redox_uefi_std = "0.1.8"
 spin = "0.9.4"
 
