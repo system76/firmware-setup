@@ -932,12 +932,16 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             for i in element_start..(element_start + max_form_elements) {
                 if let Some(element) = elements.get(i) {
                     let highlighted = i == selected;
-                    let h = {
-                        // TODO: Do not render in drawing loop
-                        let rendered = font.render(&element.prompt, font_size);
-                        draw_text_box(display, margin_lr, y, &rendered, highlighted && ! editing, highlighted && ! editing);
-                        rendered.height() as i32
-                    };
+                    // TODO: Do not render in drawing loop
+                    let mut h = 0;
+                    for line in element.prompt.lines() {
+                        let rendered = font.render(&line, font_size);
+                        draw_text_box(display, margin_lr, y + h, &rendered, highlighted && ! editing, highlighted && ! editing);
+                        h += rendered.height() as i32;
+                    }
+                    if h == 0 {
+                        h = font_size as i32;
+                    }
 
                     let x = display_w as i32 / 2;
                     if element.list {
