@@ -2,7 +2,6 @@
 
 #![no_std]
 #![no_main]
-#![feature(asm)]
 #![feature(core_intrinsics)]
 #![feature(prelude_import)]
 #![feature(try_trait_v2)]

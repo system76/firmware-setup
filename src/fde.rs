@@ -573,12 +573,12 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             let draw_value_box = |display: &mut Display, x: i32, y: i32, value: &IfrTypeValueEnum, highlighted: bool| -> i32 {
                 //TODO: Do not format in drawing loop
                 let value_string = match value {
-                    IfrTypeValueEnum::U8(value) => format!("{}", value),
-                    IfrTypeValueEnum::U16(value) => format!("{}", value),
-                    IfrTypeValueEnum::U32(value) => format!("{}", value),
-                    IfrTypeValueEnum::U64(value) => format!("{}", value),
+                    IfrTypeValueEnum::U8(value) => format!("{value}"),
+                    IfrTypeValueEnum::U16(value) => format!("{value}"),
+                    IfrTypeValueEnum::U32(value) => format!("{value}"),
+                    IfrTypeValueEnum::U64(value) => format!("{value}"),
                     IfrTypeValueEnum::Bool(value) => return ui.draw_check_box(display, x, y, *value),
-                    other => format!("{:?}", other),
+                    other => format!("{other:?}"),
                 };
 
                 // TODO: Do not render in drawing loop
@@ -735,7 +735,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     // TODO: Do not render in drawing loop
                     let mut h = 0;
                     for line in element.prompt.lines() {
-                        let rendered = ui.font.render(&line, font_size);
+                        let rendered = ui.font.render(line, font_size);
                         ui.draw_text_box(display, margin_lr, y + h, &rendered, highlighted && ! editing, highlighted && ! editing);
                         h += rendered.height() as i32;
                     }

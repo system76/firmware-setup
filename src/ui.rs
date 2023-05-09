@@ -6,9 +6,9 @@ use std::uefi::status::{Error, Result};
 use crate::display::Display;
 use crate::image::{self, Image};
 
-static FONT_TTF: &'static [u8] = include_bytes!("../res/FiraSans-Regular.ttf");
-static CHECKBOX_CHECKED_BMP: &'static [u8] = include_bytes!("../res/checkbox_checked.bmp");
-static CHECKBOX_UNCHECKED_BMP: &'static [u8] = include_bytes!("../res/checkbox_unchecked.bmp");
+static FONT_TTF: &[u8] = include_bytes!("../res/FiraSans-Regular.ttf");
+static CHECKBOX_CHECKED_BMP: &[u8] = include_bytes!("../res/checkbox_checked.bmp");
+static CHECKBOX_UNCHECKED_BMP: &[u8] = include_bytes!("../res/checkbox_unchecked.bmp");
 
 static mut FONT: *const Font = ptr::null_mut();
 static mut CHECKBOX_CHECKED: *const Image = ptr::null_mut();

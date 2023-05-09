@@ -64,11 +64,6 @@ impl Image {
         })
     }
 
-    /// Create a new empty image
-    pub fn default() -> Self {
-        Self::new(0, 0)
-    }
-
     /// Get a piece of the image
     pub fn roi(&self, x: u32, y: u32, w: u32, h: u32) -> ImageRoi {
         let x1 = cmp::min(x, self.width());
@@ -93,6 +88,13 @@ impl Image {
     /// Draw the image on a window
     pub fn draw<R: Renderer>(&self, renderer: &mut R, x: i32, y: i32) {
         renderer.image_legacy(x, y, self.w, self.h, &self.data);
+    }
+}
+
+impl Default for Image {
+    /// Create a new empty image
+    fn default() -> Self {
+        Self::new(0, 0)
     }
 }
 
