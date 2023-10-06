@@ -240,9 +240,7 @@ fn confirm(display: &mut Display) -> Result<()> {
                 }
             },
             Key::Up => {
-                if button_i > 0 {
-                    button_i -= 1;
-                }
+                button_i = button_i.saturating_sub(1);
             },
             _ => {},
         }
@@ -275,14 +273,12 @@ extern "win64" fn run() -> bool {
     };
 
     debugln!("security state: {:?}", security_state);
-    match security_state {
+    if security_state == SecurityState::Lock {
         // Already locked, so do not confirm
-        SecurityState::Lock => {
-            return false;
-        },
-        // Not locked, require confirmation
-        _ => (),
+        return false;
     }
+
+    // Not locked, require confirmation
 
     let res = match Output::one() {
         Ok(output) => {
