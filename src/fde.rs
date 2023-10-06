@@ -904,7 +904,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     },
                     Key::Down => {
                         if editing {
-                            if let Some(mut element) = elements.get_mut(selected) {
+                            if let Some(element) = elements.get_mut(selected) {
                                 if element.list {
                                     if element.list_i + 1 < element.options.len() {
                                         element.list_i += 1;
@@ -950,7 +950,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     },
                     Key::Up => {
                         if editing {
-                            if let Some(mut element) = elements.get_mut(selected) {
+                            if let Some(element) = elements.get_mut(selected) {
                                 if element.list {
                                     if element.list_i > 0 {
                                         element.list_i -= 1;
@@ -1000,7 +1000,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     },
                     Key::PageDown => {
                         if editing {
-                            if let Some(mut element) = elements.get_mut(selected) {
+                            if let Some(element) = elements.get_mut(selected) {
                                 if element.list && element.list_i + 1 < element.options.len() {
                                     element.options.swap(element.list_i, element.list_i + 1);
                                     element.list_i += 1;
@@ -1010,7 +1010,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     },
                     Key::PageUp => {
                         if editing {
-                            if let Some(mut element) = elements.get_mut(selected) {
+                            if let Some(element) = elements.get_mut(selected) {
                                 if element.list && element.list_i > 0 {
                                     element.list_i -= 1;
                                     element.options.swap(element.list_i, element.list_i + 1);
