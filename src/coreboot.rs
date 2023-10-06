@@ -26,7 +26,7 @@ pub fn init() {
         #[allow(clippy::single_match)]
         match table {
             Table::Serial(serial) => {
-                *COREBOOT_SERIAL.lock() = Some(serial.clone());
+                *COREBOOT_SERIAL.lock() = Some(*serial);
             },
             _ => (),
         }
