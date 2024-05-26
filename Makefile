@@ -1,8 +1,7 @@
-TARGET?=x86_64-unknown-uefi-drv
+# SPDX-License-Identifier: GPL-3.0-only
 
-export LD=ld
-export RUST_TARGET_PATH=$(CURDIR)/targets
-BUILD=build/$(TARGET)
+TARGET = x86_64-unknown-uefi
+BUILD = build/$(TARGET)
 
 all: $(BUILD)/boot.efi
 
@@ -48,5 +47,11 @@ $(BUILD)/boot.efi: Cargo.lock Cargo.toml res/* src/* src/*/*
 		--target $(TARGET) \
 		--release \
 		-- \
-		-C soft-float \
+		-C link-arg=/heap:0,0 \
+		-C link-arg=/stack:0,0 \
+		-C link-arg=/dll \
+		-C link-arg=/base:0 \
+		-C link-arg=/align:32 \
+		-C link-arg=/filealign:32 \
+		-C link-arg=/subsystem:efi_boot_service_driver \
 		--emit link=$@
