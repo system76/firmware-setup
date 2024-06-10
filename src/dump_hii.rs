@@ -4,11 +4,11 @@ use hwio::{Io, Pio};
 use std::{char, mem, ptr, str};
 use std::ops::Try;
 use std::proto::Protocol;
+use std::prelude::*;
 use std::uefi::hii::database::HiiHandle;
 use std::uefi::hii::ifr::{IfrOpCode, IfrOpHeader, IfrForm, IfrAction};
 use std::uefi::hii::package::{HiiPackageHeader, HiiPackageKind, HiiPackageListHeader, HiiStringPackageHeader};
 use std::uefi::hii::sibt::{SibtHeader, SibtKind, SibtEnd, SibtSkip2, SibtStringUcs2, SibtStringsUcs2};
-use std::uefi::status::{Error, Result};
 
 use crate::hii;
 
