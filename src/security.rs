@@ -247,7 +247,7 @@ fn confirm(display: &mut Display) -> Result<()> {
     }
 }
 
-extern "win64" fn run() -> bool {
+extern "efiapi" fn run() -> bool {
     let access = match unsafe { AccessLpcDirect::new(UefiTimeout::new(100_000)) } {
         Ok(ok) => ok,
         Err(err) => {
@@ -328,7 +328,7 @@ extern "win64" fn run() -> bool {
 
 pub const SYSTEM76_SECURITY_PROTOCOL_GUID: Guid = Guid(0x764247c4, 0xa859, 0x4a6b, [0xb5, 0x00, 0xed, 0x5d, 0x7a, 0x70, 0x7d, 0xd4]);
 pub struct System76SecurityProtocol {
-    pub Run: extern "win64" fn() -> bool,
+    pub Run: extern "efiapi" fn() -> bool,
 }
 
 pub fn install() -> Result<()> {
