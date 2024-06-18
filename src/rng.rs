@@ -35,12 +35,12 @@ impl Protocol<RngProtocol> for Rng {
 
 #[repr(C)]
 pub struct RngProtocol {
-    pub GetInfo: extern "win64" fn(
+    pub GetInfo: extern "efiapi" fn(
         &RngProtocol,
         RNGAlgorithmListSize: &mut usize,
         RNGAlgorithmList: *mut Guid,
     ) -> Status,
-    pub GetRNG: extern "win64" fn(
+    pub GetRNG: extern "efiapi" fn(
         &RngProtocol,
         RNGAlgorithm: *const Guid,
         RNGValueLength: usize,

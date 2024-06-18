@@ -28,8 +28,8 @@ pub const HII_STRING_PROTOCOL_GUID: Guid = Guid(0xfd96974, 0x23aa, 0x4cdc, [0xb9
 
 #[repr(C)]
 pub struct HiiStringProtocol {
-    pub NewString: extern "win64" fn(), //TODO
-    pub GetString: extern "win64" fn(
+    pub NewString: extern "efiapi" fn(), //TODO
+    pub GetString: extern "efiapi" fn(
         &HiiStringProtocol,
         Language: *const u8,
         PackageList: HiiHandle,
@@ -38,9 +38,9 @@ pub struct HiiStringProtocol {
         StringSize: &mut usize,
         StringFontInfo: usize, // TODO
     ) -> Status,
-    pub SetString: extern "win64" fn(), //TODO
-    pub GetLanguages: extern "win64" fn(), //TODO
-    pub GetSecondaryLanguages: extern "win64" fn(), //TODO
+    pub SetString: extern "efiapi" fn(), //TODO
+    pub GetLanguages: extern "efiapi" fn(), //TODO
+    pub GetSecondaryLanguages: extern "efiapi" fn(), //TODO
 }
 
 impl HiiStringProtocol {
@@ -214,14 +214,14 @@ pub struct StatementErrorInfo {
     pub TimeOut: u8,
 }
 
-pub type ValidateQuestion = extern "win64" fn (
+pub type ValidateQuestion = extern "efiapi" fn (
     Form: &Form,
     Statement: &Statement,
     Value: &HiiValue,
     ErrorInfo: &mut StatementErrorInfo,
 ) -> u32;
 
-pub type PasswordCheck = extern "win64" fn(
+pub type PasswordCheck = extern "efiapi" fn(
     Form: &Form,
     Statement: &Statement,
     PasswordString: *const u16
@@ -312,9 +312,9 @@ pub struct UserInput {
 #[repr(C)]
 #[allow(non_snake_case)]
 pub struct Fde {
-    pub FormDisplay: extern "win64" fn(FormData: &Form, UserInputData: &mut UserInput) -> Status,
-    pub ExitDisplay: extern "win64" fn(),
-    pub ConfirmDataChange: extern "win64" fn() -> usize,
+    pub FormDisplay: extern "efiapi" fn(FormData: &Form, UserInputData: &mut UserInput) -> Status,
+    pub ExitDisplay: extern "efiapi" fn(),
+    pub ConfirmDataChange: extern "efiapi" fn() -> usize,
 }
 
 static mut DISPLAY: *mut Display = ptr::null_mut();
@@ -1029,18 +1029,18 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     Ok(())
 }
 
-extern "win64" fn form_display(form: &Form, user_input: &mut UserInput) -> Status {
+extern "efiapi" fn form_display(form: &Form, user_input: &mut UserInput) -> Status {
     match form_display_inner(form, user_input) {
         Ok(()) => Status::from_output(0),
         Err(err) => Status::from_residual(err),
     }
 }
 
-extern "win64" fn exit_display() {
+extern "efiapi" fn exit_display() {
     debugln!("exit_display");
 }
 
-extern "win64" fn confirm_data_change() -> usize {
+extern "efiapi" fn confirm_data_change() -> usize {
     debugln!("confirm_data_change");
     0
 }
