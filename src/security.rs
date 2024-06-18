@@ -273,12 +273,11 @@ extern "win64" fn run() -> bool {
     };
 
     debugln!("security state: {:?}", security_state);
-    if security_state == SecurityState::Lock {
-        // Already locked, so do not confirm
+
+    // Only show prompt when unlocking
+    if security_state != SecurityState::PrepareUnlock {
         return false;
     }
-
-    // Not locked, require confirmation
 
     let res = match Output::one() {
         Ok(output) => {
