@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use core::cell::Cell;
-use core::ops::Try;
 use orbclient::{Color, Mode, Renderer};
+use std::prelude::*;
 use std::proto::Protocol;
 use std::uefi::graphics::{GraphicsOutput, GraphicsBltOp, GraphicsBltPixel};
-use std::uefi::guid::{Guid, GRAPHICS_OUTPUT_PROTOCOL_GUID};
+use std::uefi::guid::GRAPHICS_OUTPUT_PROTOCOL_GUID;
 
 pub struct Output(pub &'static mut GraphicsOutput);
 
@@ -53,7 +53,7 @@ impl Display {
             h as usize,
             0
         );
-        status.branch().is_continue()
+        status.is_success()
     }
 }
 

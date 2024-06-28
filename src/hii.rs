@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use std::proto::Protocol;
+use std::prelude::*;
 use std::uefi::hii::database::HiiDatabase;
-use std::uefi::guid::{Guid, HII_DATABASE_GUID};
+use std::uefi::guid::HII_DATABASE_GUID;
 
 pub struct Database(pub &'static mut HiiDatabase);
 

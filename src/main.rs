@@ -2,25 +2,16 @@
 
 #![no_std]
 #![no_main]
-#![feature(core_intrinsics)]
-#![feature(prelude_import)]
-#![feature(try_trait_v2)]
-#![feature(control_flow_enum)]
 #![allow(non_snake_case)]
 
-#[macro_use]
-extern crate bitflags;
 #[macro_use]
 extern crate memoffset;
 #[macro_use]
 extern crate uefi_std as std;
 
-#[allow(unused_imports)]
-#[prelude_import]
 use std::prelude::*;
 
 use core::ptr;
-use std::uefi::status::Status;
 
 #[macro_use]
 mod debug;

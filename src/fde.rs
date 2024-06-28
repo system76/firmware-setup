@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use core::prelude::v1::derive;
-use core::ops::FromResidual;
 use orbclient::{Color, Renderer};
 use orbfont::Text;
-use std::{char, cmp, ffi, mem, ptr, slice};
-use std::ops::Try;
+use core::{char, cmp, mem, ptr, slice};
+use std::prelude::*;
 use std::proto::Protocol;
-use std::uefi::Event;
-use std::uefi::guid::Guid;
+use std::ffi;
 use std::uefi::hii::{AnimationId, ImageId, StringId};
 use std::uefi::hii::database::HiiHandle;
 use std::uefi::hii::ifr::{
@@ -16,7 +13,6 @@ use std::uefi::hii::ifr::{
     IfrOpCode, IfrOpHeader, IfrStatementHeader, IfrTypeValueEnum,
     IfrAction, IfrCheckbox, IfrNumeric, IfrOneOf, IfrOneOfOption, IfrOrderedList, IfrRef, IfrSubtitle
 };
-use std::uefi::status::{Error, Result, Status};
 use std::uefi::text::TextInputKey;
 
 use crate::display::{Display, Output};
@@ -24,7 +20,7 @@ use crate::key::{raw_key, Key};
 use crate::ui::Ui;
 
 // TODO: Move to uefi library {
-pub const HII_STRING_PROTOCOL_GUID: Guid = Guid(0xfd96974, 0x23aa, 0x4cdc, [0xb9, 0xcb, 0x98, 0xd1, 0x77, 0x50, 0x32, 0x2a]);
+pub const HII_STRING_PROTOCOL_GUID: Guid = guid!("0fd96974-23aa-4cdc-b9cb-98d17750322a");
 
 #[repr(C)]
 pub struct HiiStringProtocol {
@@ -47,7 +43,7 @@ impl HiiStringProtocol {
     pub fn string(&self, PackageList: HiiHandle, StringId: StringId) -> Result<String> {
         let mut data = vec![0u16; 4096];
         let mut len = data.len();
-        (self.GetString)(
+        Result::from((self.GetString)(
             self,
             b"en-US\0".as_ptr(),
             PackageList,
@@ -55,7 +51,7 @@ impl HiiStringProtocol {
             data.as_mut_ptr(),
             &mut len,
             0
-        )?;
+        ))?;
         data.truncate(len);
 
         let mut string = String::new();
@@ -354,7 +350,7 @@ fn wait_for_events(form: &Form) -> Result<EventType>  {
         events.push(form.FormRefreshEvent);
     }
 
-    (uefi.BootServices.WaitForEvent)(events.len(), events.as_mut_ptr(), &mut index)?;
+    Result::from((uefi.BootServices.WaitForEvent)(events.len(), events.as_mut_ptr(), &mut index))?;
 
     if index == 0 {
         Ok(EventType::Keyboard)
@@ -776,7 +772,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 let raw_key = match raw_key(false) {
                     Ok(ok) => ok,
                     Err(err) => match err {
-                        Error::NotReady => break 'input,
+                        Status::NOT_READY => break 'input,
                         _ => return Err(err),
                     }
                 };
@@ -1030,10 +1026,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 }
 
 extern "efiapi" fn form_display(form: &Form, user_input: &mut UserInput) -> Status {
-    match form_display_inner(form, user_input) {
-        Ok(()) => Status::from_output(0),
-        Err(err) => Status::from_residual(err),
-    }
+    form_display_inner(form, user_input).into()
 }
 
 extern "efiapi" fn exit_display() {
@@ -1047,13 +1040,13 @@ extern "efiapi" fn confirm_data_change() -> usize {
 
 impl Fde {
     pub fn install() -> Result<()> {
-        let guid = Guid(0x9bbe29e9, 0xfda1, 0x41ec, [0xad, 0x52, 0x45, 0x22, 0x13, 0x74, 0x2d, 0x2e]);
+        let guid = guid!("9bbe29e9-fda1-41ec-ad52-452213742d2e");
 
         let uefi = unsafe { std::system_table_mut() };
 
         let current = unsafe {
             let mut interface = 0;
-            (uefi.BootServices.LocateProtocol)(&guid, 0, &mut interface)?;
+            Result::from((uefi.BootServices.LocateProtocol)(&guid, 0, &mut interface))?;
             &mut *(interface as *mut Fde)
         };
 

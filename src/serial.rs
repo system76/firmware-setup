@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use core::convert::TryInto;
-use core::prelude::v1::derive;
 use hwio::{Io, Pio, Mmio, ReadOnly};
 
-bitflags! {
+bitflags::bitflags! {
     /// Interrupt enable flags
     struct IntEnFlags: u8 {
         const RECEIVED = 1;
@@ -15,7 +14,7 @@ bitflags! {
     }
 }
 
-bitflags! {
+bitflags::bitflags! {
     /// Line status flags
     struct LineStsFlags: u8 {
         const INPUT_FULL = 1;

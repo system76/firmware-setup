@@ -42,9 +42,9 @@ checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 
 [[package]]
 name = "libc"
-version = "0.2.154"
+version = "0.2.155"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae743338b92ff9146ce83992f766a31066a91a8c84a45e0e9f21e7cf6de6d346"
+checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
 
 [[package]]
 name = "libm"
@@ -152,24 +152,21 @@ dependencies = [
 
 [[package]]
 name = "redox_uefi"
-version = "0.1.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3dbb9124e850a6953efb6ea3957d84fc48930a6dfd844d963bc8516c16f24e5"
+version = "0.1.12"
+source = "git+https://gitlab.redox-os.org/redox-os/uefi.git#695096ab997d7a207cad90d976d8907306b7eb98"
 
 [[package]]
 name = "redox_uefi_alloc"
-version = "0.1.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4ac0164918610031fe226ba74125aa03239eb86516131b8ee1e85de31b7c445"
+version = "0.1.12"
+source = "git+https://gitlab.redox-os.org/redox-os/uefi.git#695096ab997d7a207cad90d976d8907306b7eb98"
 dependencies = [
  "redox_uefi",
 ]
 
 [[package]]
 name = "redox_uefi_std"
-version = "0.1.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8e07da7709f8d1edbabf81657cd360886539c5c4a18fc047ed774bc1d6b466a"
+version = "0.1.12"
+source = "git+https://gitlab.redox-os.org/redox-os/uefi.git#695096ab997d7a207cad90d976d8907306b7eb98"
 dependencies = [
  "redox_uefi",
  "redox_uefi_alloc",
@@ -204,7 +201,7 @@ dependencies = [
 [[package]]
 name = "system76_ectool"
 version = "0.3.8"
-source = "git+https://github.com/system76/ec.git#88c77aa1d322d2cca56038b396b31a96bc42fe59"
+source = "git+https://github.com/system76/ec.git#fc3bad29a2a31555bccaaacb6af6d20b7bb1b7f6"
 dependencies = [
  "downcast-rs",
  "redox_hwio",
