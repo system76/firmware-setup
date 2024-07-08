@@ -272,12 +272,17 @@ extern "efiapi" fn run() -> bool {
         }
     };
 
-    debugln!("security state: {:?}", security_state);
+    // The EC will already be set to unlocked at this point, so the prompt
+    // must be run even when in the "Unlock" state. This is fine, as the
+    // prompt is for physical presence detection.
 
-    // Only show prompt when unlocking
-    if security_state != SecurityState::PrepareUnlock {
+    debugln!("security state: {:?}", security_state); 
+    if security_state == SecurityState::Lock {
+        // Already locked, so do not confirm
         return false;
     }
+
+    // Not locked, require confirmation
 
     let res = match Output::one() {
         Ok(output) => {
