@@ -1,17 +1,14 @@
+use core::cell::Cell;
+use core::cmp;
+use core::ptr;
+
 use ectool::{AccessLpcDirect, Ec, SecurityState, Timeout};
 use orbclient::{Color, Renderer};
-use std::{
-    cell::Cell,
-    cmp,
-    proto::Protocol,
-    ptr,
-};
+use std::prelude::*;
+use std::proto::Protocol;
 use std::uefi::{
-    Handle,
     boot::InterfaceType,
-    guid::Guid,
     reset::ResetType,
-    status::{Error, Result, Status},
 };
 
 use crate::display::{Display, Output};
@@ -228,7 +225,7 @@ fn confirm(display: &mut Display) -> Result<()> {
                     }
                 } else {
                     // Return error if cancel selected
-                    return Err(Error::Aborted);
+                    return Err(Status::ABORTED);
                 }
             },
             Key::Escape => {
@@ -345,12 +342,12 @@ pub fn install() -> Result<()> {
     });
     let protocol_ptr = Box::into_raw(protocol);
     let mut handle = Handle(0);
-    (uefi.BootServices.InstallProtocolInterface)(
+    Result::from((uefi.BootServices.InstallProtocolInterface)(
         &mut handle,
         &SYSTEM76_SECURITY_PROTOCOL_GUID,
         InterfaceType::Native,
         protocol_ptr as usize
-    )?;
+    ))?;
 
     Ok(())
 }
