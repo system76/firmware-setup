@@ -1,7 +1,9 @@
+use core::ptr;
+
 use orbclient::{Color, Renderer};
 use orbfont::{Font, Text};
-use std::ptr;
-use std::uefi::status::{Error, Result};
+
+use std::prelude::*;
 
 use crate::display::Display;
 use crate::image::{self, Image};
@@ -39,7 +41,7 @@ impl Ui {
                     Ok(ok) => ok,
                     Err(err) => {
                         println!("failed to parse font: {}", err);
-                        return Err(Error::NotFound);
+                        return Err(Status::NOT_FOUND);
                     }
                 };
                 FONT = Box::into_raw(Box::new(font));
@@ -53,7 +55,7 @@ impl Ui {
                     Ok(ok) => ok,
                     Err(err) => {
                         println!("failed to parse checkbox checked: {}", err);
-                        return Err(Error::NotFound);
+                        return Err(Status::NOT_FOUND);
                     }
                 };
                 CHECKBOX_CHECKED = Box::into_raw(Box::new(image));
@@ -67,7 +69,7 @@ impl Ui {
                     Ok(ok) => ok,
                     Err(err) => {
                         println!("failed to parse checkbox unchecked: {}", err);
-                        return Err(Error::NotFound);
+                        return Err(Status::NOT_FOUND);
                     }
                 };
                 CHECKBOX_UNCHECKED = Box::into_raw(Box::new(image));
