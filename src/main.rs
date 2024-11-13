@@ -13,18 +13,12 @@ use std::prelude::*;
 
 use core::ptr;
 
-#[macro_use]
-mod debug;
-
 mod coreboot;
 mod display;
 mod hii;
 pub mod image;
 mod key;
 mod rng;
-mod serial;
-
-//mod dump_hii;
 mod fde;
 mod security;
 mod ui;
@@ -43,7 +37,7 @@ pub extern "C" fn main() -> Status {
     }
 
     if let Err(err) = security::install() {
-        debugln!("security error: {:?}", err);
+        println!("security error: {:?}", err);
         let _ = key::key(true);
     }
 
