@@ -303,6 +303,7 @@ extern "efiapi" fn run() -> bool {
 
 pub const SYSTEM76_SECURITY_PROTOCOL_GUID: Guid = Guid(0x764247c4, 0xa859, 0x4a6b, [0xb5, 0x00, 0xed, 0x5d, 0x7a, 0x70, 0x7d, 0xd4]);
 pub struct System76SecurityProtocol {
+    #[allow(dead_code)]
     pub Run: extern "efiapi" fn() -> bool,
 }
 
