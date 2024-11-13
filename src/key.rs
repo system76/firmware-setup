@@ -4,6 +4,7 @@ use core::char;
 use std::prelude::*;
 use std::uefi::text::TextInputKey;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Key {
     Backspace,
