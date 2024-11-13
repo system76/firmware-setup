@@ -361,11 +361,6 @@ fn wait_for_events(form: &Form) -> Result<EventType>  {
 
 #[allow(unused_assignments)]
 fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
-    debugln!();
-    debugln!("form_display");
-    debugln!("FORM_DISPLAY_ENGINE_FORM {}, {:?}", mem::size_of::<Form>(), span_of!(Form, HotKeyListHead));
-    debugln!("BROWSER_HOT_KEY {}, {:?}", mem::size_of::<HotKey>(), span_of!(HotKey, Link));
-
     let hii_string = <&'static mut HiiStringProtocol>::one()?;
 
     let string = |string_id: StringId| -> Result<String> {
@@ -404,18 +399,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     'render: loop {
         let mut hotkey_helps = Vec::new();
         for hotkey in form.HotKeyListHead.iter() {
-            let hotkey_ptr = hotkey as *const _;
-            debugln!("  hotkey: {:p}, {:x?}", hotkey_ptr, unsafe {
-                slice::from_raw_parts(
-                    hotkey_ptr as *const u8,
-                    mem::size_of_val(hotkey)
-                )
-            });
-            debugln!("    key: {:p}, {:?}", hotkey.KeyData, unsafe { *hotkey.KeyData });
-            debugln!("    action: {:#x}", hotkey.Action);
-            debugln!("    defaultid: {:#x}", hotkey.DefaultId);
             let hotkey_help = ffi::nstr(hotkey.HelpString);
-            debugln!("    help: {:p}, {}", hotkey.HelpString, hotkey_help);
             hotkey_helps.push(hotkey_help);
         }
 
@@ -424,17 +408,14 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
         let mut elements = Vec::new();
         for statement in form.StatementListHead.iter() {
             let statement_ptr = statement as *const _;
-            debugln!("statement: {:p}", statement_ptr);
 
             let mut options = Vec::new();
             for option in statement.OptionListHead.iter() {
                 let option_ptr = option as *const _;
-                debugln!("  option: {:p}", option_ptr);
                 if let Some(op) = option.OptionOpCode() {
                     let value = unsafe {
                         op.Value.to_enum(op.Kind)
                     };
-                    debugln!("    {:?}: {:?}", op.Option, value);
                     let prompt = ui.font.render(&string(op.Option).unwrap_or_default(), font_size);
                     options.push(ElementOption {
                         option_ptr,
@@ -448,7 +429,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 let value = unsafe {
                     statement.CurrentValue.Value.to_enum(statement.CurrentValue.Kind)
                 };
-                debugln!("    {:?}: {:?}", header, value);
                 let buffer_opt = if statement.CurrentValue.Buffer.is_null() {
                     None
                 } else {
@@ -458,7 +438,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                             statement.CurrentValue.BufferLen as usize
                         )
                     };
-                    debugln!("      buffer: {:?}", buffer);
                     // Order list according to buffer
                     if list {
                         let mut offset = 0;
@@ -492,10 +471,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                                     IfrTypeValueEnum::U16(u16) => check_option!(u16),
                                     IfrTypeValueEnum::U32(u32) => check_option!(u32),
                                     IfrTypeValueEnum::U64(u64) => check_option!(u64),
-                                    other => {
-                                        debugln!("unsupported option in list: {:?}", other);
-                                        false
-                                    },
+                                    _ => false,
                                 };
                                 if matches {
                                     if i != j {
@@ -510,7 +486,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 };
                 if statement_ptr == form.HighLightedStatement || (selected == !0 && selectable) {
                     selected = elements.len();
-                    debugln!("selected {}", selected);
                 }
                 elements.push(Element {
                     statement_ptr,
@@ -527,10 +502,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             };
 
             if let Some(op) = statement.OpCode() {
-                debugln!("  {:?}", op);
                 macro_rules! cast {
                     ($type:ty) => ({
-                        debugln!("    casting {} to {}", op.Length(), mem::size_of::<$type>());
                         op.cast::<$type>()
                     });
                 }
@@ -781,7 +754,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     for hotkey in form.HotKeyListHead.iter() {
                         let key_data = unsafe { &*hotkey.KeyData };
                         if key_data.ScanCode == raw_key.ScanCode && key_data.UnicodeChar == raw_key.UnicodeChar {
-                            debugln!("pressed {}", ffi::nstr(hotkey.HelpString));
                             user_input.Action = hotkey.Action;
                             user_input.DefaultId = hotkey.DefaultId;
                             break 'render;
@@ -790,7 +762,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 }
 
                 let key = Key::from(raw_key);
-                debugln!("{:?}", key);
                 match key {
                     Key::Enter => {
                         if let Some(element) = elements.get_mut(selected) {
@@ -807,26 +778,23 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                             }
 
                             if checkbox {
-                                match element.value {
-                                    IfrTypeValueEnum::Bool(b) => {
-                                        user_input.SelectedStatement = element.statement_ptr;
-                                        unsafe {
-                                            ptr::copy(
-                                                &(*element.statement_ptr).CurrentValue,
-                                                &mut user_input.InputValue,
-                                                1
-                                            );
-                                        }
+                                if let IfrTypeValueEnum::Bool(b) = element.value {
+                                    user_input.SelectedStatement = element.statement_ptr;
+                                    unsafe {
+                                        ptr::copy(
+                                            &(*element.statement_ptr).CurrentValue,
+                                            &mut user_input.InputValue,
+                                            1
+                                        );
+                                    }
 
-                                        let (kind, value) = unsafe {
-                                            IfrTypeValueEnum::Bool(!b).to_union()
-                                        };
-                                        user_input.InputValue.Kind = kind;
-                                        user_input.InputValue.Value = value;
+                                    let (kind, value) = unsafe {
+                                        IfrTypeValueEnum::Bool(!b).to_union()
+                                    };
+                                    user_input.InputValue.Kind = kind;
+                                    user_input.InputValue.Value = value;
 
-                                        break 'render;
-                                    },
-                                    other => debugln!("unsupported checkbox value {:?}", other)
+                                    break 'render;
                                 }
                             } else if element.editable && ! editing {
                                 editing = true;
@@ -864,9 +832,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                                                     IfrTypeValueEnum::U16(u16) => copy_option!(u16),
                                                     IfrTypeValueEnum::U32(u32) => copy_option!(u32),
                                                     IfrTypeValueEnum::U64(u64) => copy_option!(u64),
-                                                    other => {
-                                                        debugln!("unsupported option in list: {:?}", other);
-                                                    },
+                                                    _ => (),
                                                 }
                                             }
                                             if offset < buffer.len() {
@@ -874,9 +840,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                                                     buffer[i] = 0;
                                                 }
                                             }
-                                            debugln!("modified: {:?}", buffer);
-                                        } else {
-                                            debugln!("list without buffer");
                                         }
                                     } else {
                                         let (kind, value) = unsafe { element.value.to_union() };
@@ -1020,8 +983,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
         }
     }
 
-    debugln!("selected: {:p}, action: {:#x}", user_input.SelectedStatement, user_input.Action);
-
     Ok(())
 }
 
@@ -1030,11 +991,9 @@ extern "efiapi" fn form_display(form: &Form, user_input: &mut UserInput) -> Stat
 }
 
 extern "efiapi" fn exit_display() {
-    debugln!("exit_display");
 }
 
 extern "efiapi" fn confirm_data_change() -> usize {
-    debugln!("confirm_data_change");
     0
 }
 
@@ -1049,8 +1008,6 @@ impl Fde {
             Result::from((uefi.BootServices.LocateProtocol)(&guid, 0, &mut interface))?;
             &mut *(interface as *mut Fde)
         };
-
-        debugln!("Current FDE: {:#p}", current);
 
         current.FormDisplay = form_display;
         current.ExitDisplay = exit_display;
