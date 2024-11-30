@@ -13,7 +13,6 @@ use std::prelude::*;
 
 use core::ptr;
 
-mod coreboot;
 mod display;
 mod hii;
 pub mod image;
@@ -28,8 +27,6 @@ pub extern "C" fn main() -> Status {
     let uefi = std::system_table();
 
     let _ = (uefi.BootServices.SetWatchdogTimer)(0, 0, 0, ptr::null());
-
-    coreboot::init();
 
     if let Err(err) = fde::Fde::install() {
         println!("Fde error: {:?}", err);

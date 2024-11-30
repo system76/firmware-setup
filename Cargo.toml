@@ -8,16 +8,10 @@ license = "GPL-3.0-only"
 lto = true
 
 [dependencies]
-bitflags = "2.5.0"
-coreboot-table = { git = "https://gitlab.redox-os.org/redox-os/coreboot-table.git" }
 memoffset = "0.9"
 orbclient = { version = "0.3.46", default-features = false }
 orbfont = { version = "0.1.12", default-features = false, features = ["no-std"] }
-plain = "0.2.3"
-redox_dmi = "0.1.6"
-redox_hwio = { version = "0.1.6", default-features = false }
 redox_uefi_std = "0.1.13"
-spin = "0.9.4"
 
 [dependencies.system76_ectool]
 git = "https://github.com/system76/ec.git"
@@ -26,4 +20,3 @@ features = ["redox_hwio"]
 
 [features]
 default = []
-debug = []
