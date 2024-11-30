@@ -13,7 +13,9 @@ jobs:
           submodules: true
 
       - name: Install dependencies
-        run: ./deps.sh
+        run: |
+          sudo apt install --yes make
+          rustup show
 
       - name: Build UEFI application
         run: make
