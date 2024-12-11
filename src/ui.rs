@@ -100,7 +100,7 @@ impl Ui {
         let mut last_text_opt = None;
         let mut i = 0;
         while i < words.len() {
-            if ! line.is_empty() {
+            if !line.is_empty() {
                 line.push(' ');
             }
             line.push_str(words[i]);
@@ -129,7 +129,15 @@ impl Ui {
         texts
     }
 
-    pub fn draw_pretty_box(&self, display: &mut Display, x: i32, y: i32, w: u32, h: u32, highlighted: bool) {
+    pub fn draw_pretty_box(
+        &self,
+        display: &mut Display,
+        x: i32,
+        y: i32,
+        w: u32,
+        h: u32,
+        highlighted: bool,
+    ) {
         let (_display_w, display_h) = (display.width(), display.height());
 
         let scale = if display_h > 1440 {
@@ -144,7 +152,8 @@ impl Ui {
         let padding_lr = 4 * scale;
         let padding_tb = 2 * scale;
 
-        let rect_radius = 4; //TODO: does not scale due to hardcoded checkbox image!
+        //TODO: does not scale due to hardcoded checkbox image!
+        let rect_radius = 4;
         // } Style
 
         let checkbox = if highlighted {
@@ -154,7 +163,7 @@ impl Ui {
                 y - padding_tb + rect_radius,
                 w + padding_lr as u32 * 2,
                 h + (padding_tb - rect_radius) as u32 * 2,
-                self.highlight_color
+                self.highlight_color,
             );
 
             // Top middle
@@ -183,7 +192,7 @@ impl Ui {
                 y - padding_tb,
                 w + (padding_lr - rect_radius) as u32 * 2,
                 2,
-                self.outline_color
+                self.outline_color,
             );
 
             // Bottom middle
@@ -192,7 +201,7 @@ impl Ui {
                 y + h as i32 + padding_tb - 2,
                 w + (padding_lr - rect_radius) as u32 * 2,
                 2,
-                self.outline_color
+                self.outline_color,
             );
 
             // Left middle
@@ -201,7 +210,7 @@ impl Ui {
                 y - padding_tb + rect_radius,
                 2,
                 h + (padding_tb - rect_radius) as u32 * 2,
-                self.outline_color
+                self.outline_color,
             );
 
             // Right middle
@@ -210,64 +219,78 @@ impl Ui {
                 y - padding_tb + rect_radius,
                 2,
                 h + (padding_tb - rect_radius) as u32 * 2,
-                self.outline_color
+                self.outline_color,
             );
 
             self.checkbox_unchecked
         };
 
         // Top left
-        checkbox.roi(
-            0,
-            0,
-            rect_radius as u32,
-            rect_radius as u32
-        ).draw(
-            display,
-            x - padding_lr,
-            y - padding_tb
-        );
+        checkbox
+            .roi(0, 0, rect_radius as u32, rect_radius as u32)
+            .draw(display, x - padding_lr, y - padding_tb);
 
         // Top right
-        checkbox.roi(
-            checkbox.width() - rect_radius as u32,
-            0,
-            rect_radius as u32,
-            rect_radius as u32
-        ).draw(
-            display,
-            x + w as i32 + padding_lr - rect_radius,
-            y - padding_tb
-        );
+        checkbox
+            .roi(
+                checkbox.width() - rect_radius as u32,
+                0,
+                rect_radius as u32,
+                rect_radius as u32,
+            )
+            .draw(
+                display,
+                x + w as i32 + padding_lr - rect_radius,
+                y - padding_tb,
+            );
 
         // Bottom left
-        checkbox.roi(
-            0,
-            checkbox.height() - rect_radius as u32,
-            rect_radius as u32,
-            rect_radius as u32
-        ).draw(
-            display,
-            x - padding_lr,
-            y + h as i32 + padding_tb - rect_radius
-        );
+        checkbox
+            .roi(
+                0,
+                checkbox.height() - rect_radius as u32,
+                rect_radius as u32,
+                rect_radius as u32,
+            )
+            .draw(
+                display,
+                x - padding_lr,
+                y + h as i32 + padding_tb - rect_radius,
+            );
 
         // Bottom right
-        checkbox.roi(
-            checkbox.width() - rect_radius as u32,
-            checkbox.height() - rect_radius as u32,
-            rect_radius as u32,
-            rect_radius as u32
-        ).draw(
-            display,
-            x + w as i32 + padding_lr - rect_radius,
-            y + h as i32 + padding_tb - rect_radius
-        );
+        checkbox
+            .roi(
+                checkbox.width() - rect_radius as u32,
+                checkbox.height() - rect_radius as u32,
+                rect_radius as u32,
+                rect_radius as u32,
+            )
+            .draw(
+                display,
+                x + w as i32 + padding_lr - rect_radius,
+                y + h as i32 + padding_tb - rect_radius,
+            );
     }
 
-    pub fn draw_text_box(&self, display: &mut Display, x: i32, y: i32, rendered: &Text, pretty_box: bool, highlighted: bool) {
+    pub fn draw_text_box(
+        &self,
+        display: &mut Display,
+        x: i32,
+        y: i32,
+        rendered: &Text,
+        pretty_box: bool,
+        highlighted: bool,
+    ) {
         if pretty_box {
-            self.draw_pretty_box(display, x, y, rendered.width(), rendered.height(), highlighted);
+            self.draw_pretty_box(
+                display,
+                x,
+                y,
+                rendered.width(),
+                rendered.height(),
+                highlighted,
+            );
         }
         let text_color = if highlighted {
             self.highlight_text_color

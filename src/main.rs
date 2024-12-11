@@ -14,11 +14,11 @@ use std::prelude::*;
 use core::ptr;
 
 mod display;
+mod fde;
 mod hii;
 pub mod image;
 mod key;
 mod rng;
-mod fde;
 mod security;
 mod ui;
 

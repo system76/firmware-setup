@@ -4,7 +4,7 @@ use core::cell::Cell;
 use orbclient::{Color, Mode, Renderer};
 use std::prelude::*;
 use std::proto::Protocol;
-use std::uefi::graphics::{GraphicsOutput, GraphicsBltOp, GraphicsBltPixel};
+use std::uefi::graphics::{GraphicsBltOp, GraphicsBltPixel, GraphicsOutput};
 use std::uefi::guid::GRAPHICS_OUTPUT_PROTOCOL_GUID;
 
 pub struct Output(pub &'static mut GraphicsOutput);
@@ -51,7 +51,7 @@ impl Display {
             y as usize,
             w as usize,
             h as usize,
-            0
+            0,
         );
         status.is_success()
     }
