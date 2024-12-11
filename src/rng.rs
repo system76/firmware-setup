@@ -2,7 +2,7 @@ use core::ptr;
 use std::proto::Protocol;
 use std::prelude::*;
 
-pub const RNG_PROTOCOL_GUID: Guid = Guid(0x3152bca5, 0xeade, 0x433d, [0x86, 0x2e, 0xc0, 0x1c, 0xdc, 0x29, 0x1f, 0x44]);
+pub const RNG_PROTOCOL_GUID: Guid = guid!("3152bca5-eade-433d-862e-c01cdc291f44");
 
 pub struct Rng(pub &'static mut RngProtocol);
 
