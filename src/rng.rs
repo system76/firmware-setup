@@ -1,6 +1,6 @@
 use core::ptr;
-use std::proto::Protocol;
 use std::prelude::*;
+use std::proto::Protocol;
 
 pub const RNG_PROTOCOL_GUID: Guid = guid!("3152bca5-eade-433d-862e-c01cdc291f44");
 

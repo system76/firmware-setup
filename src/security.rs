@@ -6,10 +6,7 @@ use ectool::{AccessLpcDirect, Ec, SecurityState, Timeout};
 use orbclient::{Color, Renderer};
 use std::prelude::*;
 use std::proto::Protocol;
-use std::uefi::{
-    boot::InterfaceType,
-    reset::ResetType,
-};
+use std::uefi::{boot::InterfaceType, reset::ResetType};
 
 use crate::display::{Display, Output};
 use crate::key::{key, Key};
@@ -59,9 +56,9 @@ fn confirm(display: &mut Display) -> Result<()> {
     let margin_tb = 8 * scale;
 
     let form_width = cmp::min(640 * scale as u32, display_w - margin_lr as u32 * 2);
-    let form_x = (display_w as i32 - form_width as i32)/ 2;
+    let form_x = (display_w as i32 - form_width as i32) / 2;
 
-    let title_font_size = (20  * scale) as f32;
+    let title_font_size = (20 * scale) as f32;
     let font_size = (16 * scale) as f32;
     // } Style
 
@@ -138,7 +135,7 @@ fn confirm(display: &mut Display) -> Result<()> {
                 y,
                 form_width + margin_lr as u32,
                 1,
-                Color::rgb(0xac, 0xac, 0xac)
+                Color::rgb(0xac, 0xac, 0xac),
             );
             y += margin_tb * 2;
         }
@@ -152,7 +149,14 @@ fn confirm(display: &mut Display) -> Result<()> {
 
         // Draw input box
         let input_text = ui.font.render(&input, font_size);
-        ui.draw_pretty_box(display, x, y, max_input_text.width(), font_size as u32, false);
+        ui.draw_pretty_box(
+            display,
+            x,
+            y,
+            max_input_text.width(),
+            font_size as u32,
+            false,
+        );
         input_text.draw(display, x, y, ui.text_color);
         if input.len() < code.len() {
             display.rect(
@@ -160,7 +164,7 @@ fn confirm(display: &mut Display) -> Result<()> {
                 y,
                 font_size as u32 / 2,
                 font_size as u32,
-                ui.text_color
+                ui.text_color,
             );
         }
         y += font_size as i32 + margin_tb;
@@ -189,7 +193,7 @@ fn confirm(display: &mut Display) -> Result<()> {
                 bottom_y,
                 form_width + margin_lr as u32,
                 1,
-                Color::rgb(0xac, 0xac, 0xac)
+                Color::rgb(0xac, 0xac, 0xac),
             );
         }
 
@@ -199,16 +203,14 @@ fn confirm(display: &mut Display) -> Result<()> {
         match k {
             Key::Backspace => {
                 input.pop();
-            },
-            Key::Character(c) => {
-                match c {
-                    '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
-                        if input.len() < code.len() {
-                            input.push(c);
-                        }
+            }
+            Key::Character(c) => match c {
+                '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
+                    if input.len() < code.len() {
+                        input.push(c);
                     }
-                    _ => (),
                 }
+                _ => (),
             },
             Key::Enter => {
                 if button_i == 0 {
@@ -223,19 +225,19 @@ fn confirm(display: &mut Display) -> Result<()> {
                     // Return error if cancel selected
                     return Err(Status::ABORTED);
                 }
-            },
+            }
             Key::Escape => {
                 input.clear();
-            },
+            }
             Key::Down => {
                 if button_i + 1 < buttons.len() {
                     button_i += 1;
                 }
-            },
+            }
             Key::Up => {
                 button_i = button_i.saturating_sub(1);
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }
@@ -278,7 +280,7 @@ extern "efiapi" fn run() -> bool {
             display.sync();
 
             res
-        },
+        }
         Err(err) => Err(err),
     };
 
@@ -293,7 +295,7 @@ extern "efiapi" fn run() -> bool {
                 ResetType::Shutdown,
                 Status(0),
                 0,
-                ptr::null()
+                ptr::null(),
             );
         }
     }
@@ -312,16 +314,14 @@ pub fn install() -> Result<()> {
 
     //let uefi = unsafe { std::system_table_mut() };
 
-    let protocol = Box::new(System76SecurityProtocol {
-        Run: run,
-    });
+    let protocol = Box::new(System76SecurityProtocol { Run: run });
     let protocol_ptr = Box::into_raw(protocol);
     let mut handle = Handle(0);
     Result::from((uefi.BootServices.InstallProtocolInterface)(
         &mut handle,
         &SYSTEM76_SECURITY_PROTOCOL_GUID,
         InterfaceType::Native,
-        protocol_ptr as usize
+        protocol_ptr as usize,
     ))?;
 
     Ok(())
