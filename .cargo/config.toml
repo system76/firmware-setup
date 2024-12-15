@@ -1,13 +1,2 @@
 [build]
 target = "x86_64-unknown-uefi"
-
-[target.x86_64-unknown-uefi]
-rustflags = [
-    "-Clink-arg=/heap:0,0",
-    "-Clink-arg=/stack:0,0",
-    "-Clink-arg=/dll",
-    "-Clink-arg=/base:0",
-    "-Clink-arg=/align:32",
-    "-Clink-arg=/filealign:32",
-    "-Clink-arg=/subsystem:efi_boot_service_driver"
-]
