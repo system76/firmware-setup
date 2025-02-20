@@ -22,7 +22,7 @@ mod rng;
 mod security;
 mod ui;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn main() -> Status {
     let uefi = std::system_table();
 

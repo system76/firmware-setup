@@ -120,12 +120,12 @@ impl<T> ListEntry<T> {
 
     unsafe fn object_at(&self, offset: usize) -> &T {
         let addr = self as *const Self as usize;
-        &*((addr - offset) as *const T)
+        unsafe { &*((addr - offset) as *const T) }
     }
 
     unsafe fn object_at_mut(&mut self, offset: usize) -> &mut T {
         let addr = self as *mut Self as usize;
-        &mut *((addr - offset) as *mut T)
+        unsafe { &mut *((addr - offset) as *mut T) }
     }
 }
 
@@ -140,11 +140,11 @@ macro_rules! list_entry {
     ($t:ident, $l:tt) => {
         impl ListEntryObject<$t> for ListEntry<$t> {
             unsafe fn object(&self) -> &$t {
-                self.object_at(offset_of!($t, $l))
+                unsafe { self.object_at(offset_of!($t, $l)) }
             }
 
             unsafe fn object_mut(&mut self) -> &mut $t {
-                self.object_at_mut(offset_of!($t, $l))
+                unsafe { self.object_at_mut(offset_of!($t, $l)) }
             }
         }
     };
