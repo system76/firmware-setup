@@ -63,11 +63,7 @@ fn confirm(display: &mut Display) -> Result<()> {
     // } Style
 
     let ui = Ui::new()?;
-
-    let rng = match Rng::one() {
-        Ok(ok) => ok,
-        Err(err) => return Err(err),
-    };
+    let rng = Rng::one()?;
 
     // Clear any previous keys
     let _ = key(false);

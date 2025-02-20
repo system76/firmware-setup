@@ -44,7 +44,7 @@ impl HiiStringProtocol {
         let mut len = data.len();
         Result::from((self.GetString)(
             self,
-            b"en-US\0".as_ptr(),
+            c"en-US".as_ptr() as *const u8,
             PackageList,
             StringId,
             data.as_mut_ptr(),
