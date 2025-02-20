@@ -15,7 +15,7 @@ use std::uefi::hii::{AnimationId, ImageId, StringId};
 use std::uefi::text::TextInputKey;
 
 use crate::display::{Display, Output};
-use crate::key::{raw_key, Key};
+use crate::key::{Key, raw_key};
 use crate::ui::Ui;
 
 // TODO: Move to uefi library {
@@ -511,9 +511,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
             if let Some(op) = statement.OpCode() {
                 macro_rules! cast {
-                    ($type:ty) => {{
-                        op.cast::<$type>()
-                    }};
+                    ($type:ty) => {{ op.cast::<$type>() }};
                 }
                 match op.OpCode {
                     IfrOpCode::Action => {
@@ -574,7 +572,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     IfrTypeValueEnum::U32(value) => format!("{value}"),
                     IfrTypeValueEnum::U64(value) => format!("{value}"),
                     IfrTypeValueEnum::Bool(value) => {
-                        return ui.draw_check_box(display, x, y, *value)
+                        return ui.draw_check_box(display, x, y, *value);
                     }
                     other => format!("{other:?}"),
                 };

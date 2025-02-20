@@ -9,7 +9,7 @@ use std::proto::Protocol;
 use std::uefi::{boot::InterfaceType, reset::ResetType};
 
 use crate::display::{Display, Output};
-use crate::key::{key, Key};
+use crate::key::{Key, key};
 use crate::rng::Rng;
 use crate::ui::Ui;
 
