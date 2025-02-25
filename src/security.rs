@@ -40,7 +40,7 @@ impl Timeout for UefiTimeout {
     }
 }
 
-fn confirm(display: &mut Display) -> Result<()> {
+pub(crate) fn confirm(display: &mut Display) -> Result<()> {
     let (display_w, display_h) = (display.width(), display.height());
 
     let scale: i32 = if display_h > 1440 {
@@ -52,14 +52,14 @@ fn confirm(display: &mut Display) -> Result<()> {
     };
 
     // Style {
-    let margin_lr = 16 * scale;
-    let margin_tb = 8 * scale;
+    let margin_lr = 12 * scale;
+    let margin_tb = 4 * scale;
 
     let form_width = cmp::min(640 * scale as u32, display_w - margin_lr as u32 * 2);
     let form_x = (display_w as i32 - form_width as i32) / 2;
 
-    let title_font_size = (20 * scale) as f32;
-    let font_size = (16 * scale) as f32;
+    let title_font_size = (12 * scale) as f32;
+    let font_size = (10 * scale) as f32;
     // } Style
 
     let ui = Ui::new()?;
