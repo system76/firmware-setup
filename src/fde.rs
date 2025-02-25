@@ -378,6 +378,9 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
         &mut *DISPLAY
     };
 
+    // If you want to test the security screen, uncomment this line:
+    // crate::security::confirm(display);
+
     let (display_w, display_h) = (display.width(), display.height());
 
     let scale = if display_h > 1440 {
@@ -389,12 +392,12 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     };
 
     // Style {
-    let margin_lr = 8 * scale;
+    let margin_lr = 12 * scale;
     let margin_tb = 4 * scale;
 
-    let title_font_size = (20 * scale) as f32;
-    let font_size = (16 * scale) as f32; // (display_h as f32) / 26.0
-    let help_font_size = (12 * scale) as f32;
+    let title_font_size = (12 * scale) as f32;
+    let font_size = (10 * scale) as f32; // (display_h as f32) / 26.0
+    let help_font_size = (10 * scale) as f32;
     // } Style
 
     let ui = Ui::new()?;
@@ -672,7 +675,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 if selected == !0 {
                     render_hotkey_help("");
                 } else if !editing || !editing_value {
-                    render_hotkey_help("↑↓=Move Highlight");
+                    render_hotkey_help("Up/Down=Move Highlight");
                 }
 
                 if editing {
