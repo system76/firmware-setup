@@ -15,7 +15,7 @@ use std::uefi::hii::{AnimationId, ImageId, StringId};
 use std::uefi::text::TextInputKey;
 
 use crate::display::{Display, Output};
-use crate::key::{raw_key, Key};
+use crate::key::{Key, raw_key};
 use crate::ui::Ui;
 
 // TODO: Move to uefi library {
@@ -399,6 +399,26 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
     let ui = Ui::new()?;
 
+    let draw_value_box = |display: &mut Display,
+                          x: i32,
+                          y: i32,
+                          value: &IfrTypeValueEnum,
+                          highlighted: bool|
+     -> i32 {
+        let value_string = match value {
+            IfrTypeValueEnum::U8(value) => format!("{value}"),
+            IfrTypeValueEnum::U16(value) => format!("{value}"),
+            IfrTypeValueEnum::U32(value) => format!("{value}"),
+            IfrTypeValueEnum::U64(value) => format!("{value}"),
+            IfrTypeValueEnum::Bool(value) => return ui.draw_check_box(display, x, y, *value),
+            other => format!("{other:?}"),
+        };
+
+        let rendered = ui.font.render(&value_string, font_size);
+        ui.draw_text_box(display, x, y, &rendered, true, highlighted);
+        rendered.height() as i32
+    };
+
     'render: loop {
         let mut hotkey_helps = Vec::new();
         for hotkey in form.HotKeyListHead.iter() {
@@ -511,9 +531,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
             if let Some(op) = statement.OpCode() {
                 macro_rules! cast {
-                    ($type:ty) => {{
-                        op.cast::<$type>()
-                    }};
+                    ($type:ty) => {{ op.cast::<$type>() }};
                 }
                 match op.OpCode {
                     IfrOpCode::Action => {
@@ -560,30 +578,6 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
         let mut element_start = 0;
         'display: loop {
             display.set(ui.background_color);
-
-            let draw_value_box = |display: &mut Display,
-                                  x: i32,
-                                  y: i32,
-                                  value: &IfrTypeValueEnum,
-                                  highlighted: bool|
-             -> i32 {
-                //TODO: Do not format in drawing loop
-                let value_string = match value {
-                    IfrTypeValueEnum::U8(value) => format!("{value}"),
-                    IfrTypeValueEnum::U16(value) => format!("{value}"),
-                    IfrTypeValueEnum::U32(value) => format!("{value}"),
-                    IfrTypeValueEnum::U64(value) => format!("{value}"),
-                    IfrTypeValueEnum::Bool(value) => {
-                        return ui.draw_check_box(display, x, y, *value)
-                    }
-                    other => format!("{other:?}"),
-                };
-
-                // TODO: Do not render in drawing loop
-                let rendered = ui.font.render(&value_string, font_size);
-                ui.draw_text_box(display, x, y, &rendered, true, highlighted);
-                rendered.height() as i32
-            };
 
             let draw_options_box =
                 |display: &mut Display, x: i32, mut y: i32, element: &Element| {
