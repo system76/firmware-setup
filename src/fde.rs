@@ -19,38 +19,42 @@ use crate::key::{Key, raw_key};
 use crate::ui::Ui;
 
 // TODO: Move to uefi library {
-pub const HII_STRING_PROTOCOL_GUID: Guid = guid!("0fd96974-23aa-4cdc-b9cb-98d17750322a");
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct HiiStringProtocol {
-    pub NewString: extern "efiapi" fn(), //TODO
-    pub GetString: extern "efiapi" fn(
+    pub new_string: unsafe extern "efiapi" fn(), //TODO
+    pub get_string: unsafe extern "efiapi" fn(
         &HiiStringProtocol,
-        Language: *const u8,
-        PackageList: HiiHandle,
-        StringId: StringId,
-        String: *mut u16,
-        StringSize: &mut usize,
-        StringFontInfo: usize, // TODO
+        language: *const u8,
+        package_list: HiiHandle,
+        string_id: StringId,
+        string: *mut u16,
+        string_size: &mut usize,
+        string_font_info: usize, // TODO
     ) -> Status,
-    pub SetString: extern "efiapi" fn(),             //TODO
-    pub GetLanguages: extern "efiapi" fn(),          //TODO
-    pub GetSecondaryLanguages: extern "efiapi" fn(), //TODO
+    pub set_string: unsafe extern "efiapi" fn(),             //TODO
+    pub get_languages: unsafe extern "efiapi" fn(),          //TODO
+    pub get_secondary_languages: unsafe extern "efiapi" fn(), //TODO
 }
 
 impl HiiStringProtocol {
-    pub fn string(&self, PackageList: HiiHandle, StringId: StringId) -> Result<String> {
+    pub const GUID: Guid = guid!("0fd96974-23aa-4cdc-b9cb-98d17750322a");
+
+    pub fn string(&self, package_list: HiiHandle, string_id: StringId) -> Result<String> {
         let mut data = vec![0u16; 4096];
         let mut len = data.len();
-        Result::from((self.GetString)(
-            self,
-            c"en-US".as_ptr() as *const u8,
-            PackageList,
-            StringId,
-            data.as_mut_ptr(),
-            &mut len,
-            0,
-        ))?;
+        unsafe {
+            Result::from((self.get_string)(
+                self,
+                c"en-US".as_ptr() as *const u8,
+                package_list,
+                string_id,
+                data.as_mut_ptr(),
+                &mut len,
+                0,
+            ))?;
+        }
         data.truncate(len);
 
         let mut string = String::new();
@@ -67,7 +71,7 @@ impl HiiStringProtocol {
 
 impl Protocol<HiiStringProtocol> for &'static mut HiiStringProtocol {
     fn guid() -> Guid {
-        HII_STRING_PROTOCOL_GUID
+        HiiStringProtocol::GUID
     }
 
     fn new(inner: &'static mut HiiStringProtocol) -> Self {
@@ -80,41 +84,41 @@ impl Protocol<HiiStringProtocol> for &'static mut HiiStringProtocol {
 // TODO: move to uefi library {
 #[repr(C)]
 pub struct ListEntry<T> {
-    Flink: *mut ListEntry<T>,
-    Blink: *mut ListEntry<T>,
+    flink: *mut ListEntry<T>,
+    blink: *mut ListEntry<T>,
 }
 
 #[allow(dead_code)]
 impl<T> ListEntry<T> {
     pub fn previous(&self) -> Option<&Self> {
-        if self.Blink.is_null() {
+        if self.blink.is_null() {
             None
         } else {
-            Some(unsafe { &*self.Blink })
+            Some(unsafe { &*self.blink })
         }
     }
 
     pub fn previous_mut(&mut self) -> Option<&mut Self> {
-        if self.Blink.is_null() {
+        if self.blink.is_null() {
             None
         } else {
-            Some(unsafe { &mut *self.Blink })
+            Some(unsafe { &mut *self.blink })
         }
     }
 
     pub fn next(&self) -> Option<&Self> {
-        if self.Flink.is_null() {
+        if self.flink.is_null() {
             None
         } else {
-            Some(unsafe { &*self.Flink })
+            Some(unsafe { &*self.flink })
         }
     }
 
     pub fn next_mut(&mut self) -> Option<&mut Self> {
-        if self.Flink.is_null() {
+        if self.flink.is_null() {
             None
         } else {
-            Some(unsafe { &mut *self.Flink })
+            Some(unsafe { &mut *self.flink })
         }
     }
 
@@ -189,28 +193,28 @@ impl<T> ListHead<T> {
 
 #[repr(C)]
 pub struct QuestionOption {
-    pub Signature: usize,
-    pub Link: ListEntry<QuestionOption>,
-    pub OptionOpCodePtr: *const IfrOneOfOption,
-    pub ImageId: ImageId,
-    pub AnimationId: AnimationId,
+    pub signature: usize,
+    pub link: ListEntry<QuestionOption>,
+    pub option_opcode_ptr: *const IfrOneOfOption,
+    pub image_id: ImageId,
+    pub animation_id: AnimationId,
 }
-list_entry!(QuestionOption, Link);
+list_entry!(QuestionOption, link);
 
 impl QuestionOption {
-    pub fn OptionOpCode(&self) -> Option<&IfrOneOfOption> {
-        if self.OptionOpCodePtr.is_null() {
+    pub fn option_opcode(&self) -> Option<&IfrOneOfOption> {
+        if self.option_opcode_ptr.is_null() {
             None
         } else {
-            Some(unsafe { &*self.OptionOpCodePtr })
+            Some(unsafe { &*self.option_opcode_ptr })
         }
     }
 }
 
 #[repr(C)]
 pub struct StatementErrorInfo {
-    pub StringId: StringId,
-    pub TimeOut: u8,
+    pub string_id: StringId,
+    pub timeout: u8,
 }
 
 pub type ValidateQuestion = extern "efiapi" fn(
@@ -225,71 +229,71 @@ pub type PasswordCheck =
 
 #[repr(C)]
 pub struct Statement {
-    pub Signature: usize,
-    pub Version: usize,
-    pub DisplayLink: ListEntry<Statement>,
-    pub OpCodePtr: *const IfrOpHeader,
-    pub CurrentValue: HiiValue,
-    pub SettingChangedFlag: bool,
-    pub NestStatementList: ListHead<Statement>,
-    pub OptionListHead: ListHead<QuestionOption>,
-    pub Attribute: u32,
-    pub ValidateQuestion: Option<ValidateQuestion>,
-    pub PasswordCheck: Option<PasswordCheck>,
-    pub ImageId: ImageId,
-    pub AnimationId: AnimationId,
+    pub signature: usize,
+    pub version: usize,
+    pub display_link: ListEntry<Statement>,
+    pub opcode_ptr: *const IfrOpHeader,
+    pub current_value: HiiValue,
+    pub setting_changed_flag: bool,
+    pub nest_statement_list: ListHead<Statement>,
+    pub option_list_head: ListHead<QuestionOption>,
+    pub attribute: u32,
+    pub validate_question: Option<ValidateQuestion>,
+    pub password_check: Option<PasswordCheck>,
+    pub image_id: ImageId,
+    pub animation_id: AnimationId,
 }
-list_entry!(Statement, DisplayLink);
+list_entry!(Statement, display_link);
 
 impl Statement {
-    pub fn OpCode(&self) -> Option<&IfrOpHeader> {
-        if self.OpCodePtr.is_null() {
+    pub fn opcode(&self) -> Option<&IfrOpHeader> {
+        if self.opcode_ptr.is_null() {
             None
         } else {
-            Some(unsafe { &*self.OpCodePtr })
+            Some(unsafe { &*self.opcode_ptr })
         }
     }
 }
 
 #[repr(C)]
 pub struct ScreenDescriptor {
-    pub LeftColumn: usize,
-    pub RightColumn: usize,
-    pub TopRow: usize,
-    pub BottomRow: usize,
+    pub left_column: usize,
+    pub right_column: usize,
+    pub top_row: usize,
+    pub bottom_row: usize,
 }
 
 #[repr(C)]
 pub struct HotKey {
-    pub Signature: usize,
-    pub Link: ListEntry<HotKey>,
-    pub KeyData: *const TextInputKey,
-    pub Action: u32,
-    pub DefaultId: u16,
-    pub HelpString: *const u16,
+    pub signature: usize,
+    pub link: ListEntry<HotKey>,
+    pub key_data: *const TextInputKey,
+    pub action: u32,
+    pub default_id: u16,
+    pub help_string: *const u16,
 }
-list_entry!(HotKey, Link);
+list_entry!(HotKey, link);
 
 #[repr(C)]
 pub struct Form {
-    pub Signature: usize,
-    pub Version: usize,
-    pub StatementListHead: ListHead<Statement>,
-    pub StatementListOSF: ListHead<Statement>,
-    pub ScreenDimensions: *const ScreenDescriptor,
-    pub FormSetGuid: Guid,
-    pub HiiHandle: HiiHandle,
-    pub FormId: u16,
-    pub FormTitle: StringId,
-    pub Attribute: u32,
-    pub SettingChangedFlag: bool,
-    pub HighLightedStatement: *const Statement,
-    pub FormRefreshEvent: Event,
-    pub HotKeyListHead: ListHead<HotKey>,
-    pub ImageId: ImageId,
-    pub AnimationId: AnimationId,
-    pub BrowserStatus: u32,
-    pub ErrorString: *const u16,
+    pub signature: usize,
+    pub version: usize,
+    pub statement_list_head: ListHead<Statement>,
+    pub statement_list_osf: ListHead<Statement>,
+    pub screen_dimensions: *const ScreenDescriptor,
+    pub formset_guid: Guid,
+    pub hii_handle: HiiHandle,
+    pub form_id: u16,
+    pub form_title: StringId,
+    pub attribute: u32,
+    pub setting_changed_flag: bool,
+    pub highlighted_statement: *const Statement,
+    pub form_refresh_event: Event,
+    pub hotkey_list_head: ListHead<HotKey>,
+    pub image_id: ImageId,
+    pub animation_id: AnimationId,
+    pub browser_status: u32,
+    pub error_string: *const u16,
 }
 
 const FRONT_PAGE_FORM_ID: u16 = 0x7600;
@@ -299,18 +303,17 @@ const BROWSER_ACTION_FORM_EXIT: u32 = 1 << 17;
 
 #[repr(C)]
 pub struct UserInput {
-    pub SelectedStatement: *const Statement,
-    pub InputValue: HiiValue,
-    pub Action: u32,
-    pub DefaultId: u16,
+    pub selected_statement: *const Statement,
+    pub input_value: HiiValue,
+    pub action: u32,
+    pub default_id: u16,
 }
 
 #[repr(C)]
-#[allow(non_snake_case)]
 pub struct Fde {
-    pub FormDisplay: extern "efiapi" fn(FormData: &Form, UserInputData: &mut UserInput) -> Status,
-    pub ExitDisplay: extern "efiapi" fn(),
-    pub ConfirmDataChange: extern "efiapi" fn() -> usize,
+    pub form_display: unsafe extern "efiapi" fn(FormData: &Form, UserInputData: &mut UserInput) -> Status,
+    pub exit_display: unsafe extern "efiapi" fn(),
+    pub confirm_data_change: unsafe extern "efiapi" fn() -> usize,
 }
 
 static mut DISPLAY: *mut Display = ptr::null_mut();
@@ -346,8 +349,8 @@ fn wait_for_events(form: &Form) -> Result<EventType> {
     let mut index = 0;
     let mut events = vec![uefi.ConsoleIn.WaitForKey];
 
-    if form.FormRefreshEvent != Event(0) {
-        events.push(form.FormRefreshEvent);
+    if form.form_refresh_event != Event(0) {
+        events.push(form.form_refresh_event);
     }
 
     Result::from((uefi.BootServices.WaitForEvent)(
@@ -368,7 +371,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     let hii_string = <&'static mut HiiStringProtocol>::one()?;
 
     let string =
-        |string_id: StringId| -> Result<String> { hii_string.string(form.HiiHandle, string_id) };
+        |string_id: StringId| -> Result<String> { hii_string.string(form.hii_handle, string_id) };
 
     let display: &mut Display = unsafe {
         if DISPLAY.is_null() {
@@ -401,21 +404,21 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
     'render: loop {
         let mut hotkey_helps = Vec::new();
-        for hotkey in form.HotKeyListHead.iter() {
-            let hotkey_help = unsafe { ffi::nstr(hotkey.HelpString) };
+        for hotkey in form.hotkey_list_head.iter() {
+            let hotkey_help = unsafe { ffi::nstr(hotkey.help_string) };
             hotkey_helps.push(hotkey_help);
         }
 
         let mut selected = !0;
         let mut editing = false;
         let mut elements = Vec::new();
-        for statement in form.StatementListHead.iter() {
+        for statement in form.statement_list_head.iter() {
             let statement_ptr = statement as *const _;
 
             let mut options = Vec::new();
-            for option in statement.OptionListHead.iter() {
+            for option in statement.option_list_head.iter() {
                 let option_ptr = option as *const _;
-                if let Some(op) = option.OptionOpCode() {
+                if let Some(op) = option.option_opcode() {
                     let value = unsafe { op.Value.to_enum(op.Kind) };
                     let prompt = ui
                         .font
@@ -432,17 +435,17 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 |header: IfrStatementHeader, selectable: bool, editable: bool, list: bool| {
                     let value = unsafe {
                         statement
-                            .CurrentValue
+                            .current_value
                             .Value
-                            .to_enum(statement.CurrentValue.Kind)
+                            .to_enum(statement.current_value.Kind)
                     };
-                    let buffer_opt = if statement.CurrentValue.Buffer.is_null() {
+                    let buffer_opt = if statement.current_value.Buffer.is_null() {
                         None
                     } else {
                         let buffer = unsafe {
                             slice::from_raw_parts_mut(
-                                statement.CurrentValue.Buffer,
-                                statement.CurrentValue.BufferLen as usize,
+                                statement.current_value.Buffer,
+                                statement.current_value.BufferLen as usize,
                             )
                         };
                         // Order list according to buffer
@@ -491,7 +494,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                         }
                         Some(buffer)
                     };
-                    if statement_ptr == form.HighLightedStatement || (selected == !0 && selectable)
+                    if statement_ptr == form.highlighted_statement || (selected == !0 && selectable)
                     {
                         selected = elements.len();
                     }
@@ -509,7 +512,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     });
                 };
 
-            if let Some(op) = statement.OpCode() {
+            if let Some(op) = statement.opcode() {
                 macro_rules! cast {
                     ($type:ty) => {{ op.cast::<$type>() }};
                 }
@@ -554,7 +557,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             }
         }
 
-        let title_opt = string(form.FormTitle).ok();
+        let title_opt = string(form.form_title).ok();
         let mut element_start = 0;
         'display: loop {
             display.set(ui.background_color);
@@ -657,7 +660,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
                 if editing {
                     render_hotkey_help("Esc=Discard Changes");
-                } else if form.FormId == FRONT_PAGE_FORM_ID {
+                } else if form.form_id == FRONT_PAGE_FORM_ID {
                     render_hotkey_help("");
                 } else {
                     render_hotkey_help("Esc=Exit");
@@ -782,7 +785,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
             let signaled = wait_for_events(form)?;
             if signaled == EventType::Driver {
-                user_input.Action = BROWSER_ACTION_NONE;
+                user_input.action = BROWSER_ACTION_NONE;
                 break 'render;
             }
 
@@ -797,13 +800,13 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 };
 
                 if !editing {
-                    for hotkey in form.HotKeyListHead.iter() {
-                        let key_data = unsafe { &*hotkey.KeyData };
+                    for hotkey in form.hotkey_list_head.iter() {
+                        let key_data = unsafe { &*hotkey.key_data };
                         if key_data.ScanCode == raw_key.ScanCode
                             && key_data.UnicodeChar == raw_key.UnicodeChar
                         {
-                            user_input.Action = hotkey.Action;
-                            user_input.DefaultId = hotkey.DefaultId;
+                            user_input.action = hotkey.action;
+                            user_input.default_id = hotkey.default_id;
                             break 'render;
                         }
                     }
@@ -816,7 +819,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                             let mut checkbox = false;
                             {
                                 let statement = unsafe { &(*element.statement_ptr) };
-                                if let Some(op) = statement.OpCode() {
+                                if let Some(op) = statement.opcode() {
                                     #[allow(clippy::single_match)]
                                     match op.OpCode {
                                         IfrOpCode::Checkbox => checkbox = true,
@@ -827,30 +830,30 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
                             if checkbox {
                                 if let IfrTypeValueEnum::Bool(b) = element.value {
-                                    user_input.SelectedStatement = element.statement_ptr;
+                                    user_input.selected_statement = element.statement_ptr;
                                     unsafe {
                                         ptr::copy(
-                                            &(*element.statement_ptr).CurrentValue,
-                                            &mut user_input.InputValue,
+                                            &(*element.statement_ptr).current_value,
+                                            &mut user_input.input_value,
                                             1,
                                         );
                                     }
 
                                     let (kind, value) =
                                         unsafe { IfrTypeValueEnum::Bool(!b).to_union() };
-                                    user_input.InputValue.Kind = kind;
-                                    user_input.InputValue.Value = value;
+                                    user_input.input_value.Kind = kind;
+                                    user_input.input_value.Value = value;
 
                                     break 'render;
                                 }
                             } else if element.editable && !editing {
                                 editing = true;
                             } else {
-                                user_input.SelectedStatement = element.statement_ptr;
+                                user_input.selected_statement = element.statement_ptr;
                                 unsafe {
                                     ptr::copy(
-                                        &(*element.statement_ptr).CurrentValue,
-                                        &mut user_input.InputValue,
+                                        &(*element.statement_ptr).current_value,
+                                        &mut user_input.input_value,
                                         1,
                                     );
                                 }
@@ -892,8 +895,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                                         }
                                     } else {
                                         let (kind, value) = unsafe { element.value.to_union() };
-                                        user_input.InputValue.Kind = kind;
-                                        user_input.InputValue.Value = value;
+                                        user_input.input_value.Kind = kind;
+                                        user_input.input_value.Value = value;
                                     }
                                     editing = false;
                                 }
@@ -905,8 +908,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                         if editing {
                             editing = false;
                             break 'display;
-                        } else if form.FormId != FRONT_PAGE_FORM_ID {
-                            user_input.Action = BROWSER_ACTION_FORM_EXIT;
+                        } else if form.form_id != FRONT_PAGE_FORM_ID {
+                            user_input.action = BROWSER_ACTION_FORM_EXIT;
                             break 'render;
                         }
                     }
@@ -1052,20 +1055,20 @@ extern "efiapi" fn confirm_data_change() -> usize {
 }
 
 impl Fde {
-    pub fn install() -> Result<()> {
-        let guid = guid!("9bbe29e9-fda1-41ec-ad52-452213742d2e");
+    pub const GUID: Guid = guid!("9bbe29e9-fda1-41ec-ad52-452213742d2e");
 
+    pub fn install() -> Result<()> {
         let uefi = unsafe { std::system_table_mut() };
 
         let current = unsafe {
             let mut interface = 0;
-            Result::from((uefi.BootServices.LocateProtocol)(&guid, 0, &mut interface))?;
+            Result::from((uefi.BootServices.LocateProtocol)(&Self::GUID, 0, &mut interface))?;
             &mut *(interface as *mut Fde)
         };
 
-        current.FormDisplay = form_display;
-        current.ExitDisplay = exit_display;
-        current.ConfirmDataChange = confirm_data_change;
+        current.form_display = form_display;
+        current.exit_display = exit_display;
+        current.confirm_data_change = confirm_data_change;
 
         Ok(())
     }
