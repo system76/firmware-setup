@@ -1,0 +1,4 @@
+[submodule "extern/uefi"]
+	path = extern/uefi
+	url = https://github.com/crawfxrd/uefi-rs.git
+	branch = hii-bindings

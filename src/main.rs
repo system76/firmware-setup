@@ -3,37 +3,29 @@
 #![no_std]
 #![no_main]
 
-#[macro_use]
-extern crate uefi_std as std;
+//#[macro_use]
+extern crate alloc;
 
-use std::prelude::*;
+//mod display;
+//mod fde;
+//mod image;
+//mod key;
+//mod security;
+//mod ui;
 
-use core::ptr;
+mod edk2;
+mod fde_new;
 
-mod display;
-mod fde;
-mod hii;
-pub mod image;
-mod key;
-mod rng;
-mod security;
-mod ui;
+use uefi::prelude::*;
 
-#[unsafe(no_mangle)]
-pub extern "C" fn main() -> Status {
-    let uefi = std::system_table();
+#[entry]
+fn main() -> Status {
+    //uefi::helpers::init().unwrap();
 
-    let _ = (uefi.BootServices.SetWatchdogTimer)(0, 0, 0, ptr::null());
+    let _ = boot::set_watchdog_timer(0, 0, None);
 
-    if let Err(err) = fde::Fde::install() {
-        println!("Fde error: {:?}", err);
-        let _ = key::key(true);
-    }
+    let _ = fde_new::replace_interface();
+    //let _ = security::install();
 
-    if let Err(err) = security::install() {
-        println!("security error: {:?}", err);
-        let _ = key::key(true);
-    }
-
-    Status(0)
+    Status::SUCCESS
 }

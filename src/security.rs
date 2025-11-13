@@ -1,16 +1,19 @@
+use alloc::boxed::Box;
+use alloc::string::String;
 use core::cell::Cell;
 use core::cmp;
 use core::ptr;
 
 use ectool::{AccessLpcDirect, Ec, SecurityState, Timeout};
 use orbclient::{Color, Renderer};
-use std::prelude::*;
-use std::proto::Protocol;
-use std::uefi::{boot::InterfaceType, reset::ResetType};
 
-use crate::display::{Display, Output};
+use uefi::prelude::*;
+use uefi::proto::rng::Rng;
+use uefi::{Boolean, Guid, guid};
+use uefi::runtime::ResetType;
+
+use crate::display::Display;
 use crate::key::{Key, key};
-use crate::rng::Rng;
 use crate::ui::Ui;
 
 pub struct UefiTimeout {
@@ -34,7 +37,7 @@ impl Timeout for UefiTimeout {
 
     fn running(&self) -> bool {
         let elapsed = self.elapsed.get() + 1;
-        let _ = (std::system_table().BootServices.Stall)(1);
+        boot::stall(Duration::SECOND);
         self.elapsed.set(elapsed);
         elapsed < self.duration
     }
@@ -93,10 +96,7 @@ fn confirm(display: &mut Display) -> Result<()> {
     texts.push(ui.font.render(&code, font_size));
 
     let mut button_i = 0;
-    let buttons = [
-        ui.font.render("Confirm", font_size),
-        ui.font.render("Cancel", font_size),
-    ];
+    let buttons = [ui.font.render("Confirm", font_size), ui.font.render("Cancel", font_size)];
 
     let mut max_input = String::new();
     while max_input.len() < code.len() {
@@ -145,14 +145,7 @@ fn confirm(display: &mut Display) -> Result<()> {
 
         // Draw input box
         let input_text = ui.font.render(&input, font_size);
-        ui.draw_pretty_box(
-            display,
-            x,
-            y,
-            max_input_text.width(),
-            font_size as u32,
-            false,
-        );
+        ui.draw_pretty_box(display, x, y, max_input_text.width(), font_size as u32, false);
         input_text.draw(display, x, y, ui.text_color);
         if input.len() < code.len() {
             display.rect(
@@ -238,7 +231,7 @@ fn confirm(display: &mut Display) -> Result<()> {
     }
 }
 
-extern "efiapi" fn run() -> bool {
+extern "efiapi" fn run() -> Boolean {
     let access = match unsafe { AccessLpcDirect::new(UefiTimeout::new(100_000)) } {
         Ok(ok) => ok,
         Err(_) => return false,
@@ -265,7 +258,7 @@ extern "efiapi" fn run() -> bool {
 
     // Not locked, require confirmation
 
-    let res = match Output::one() {
+    let res = match GraphicsOutput::one() {
         Ok(output) => {
             let mut display = Display::new(output);
 
@@ -287,12 +280,7 @@ extern "efiapi" fn run() -> bool {
             let _ = unsafe { ec.security_set(SecurityState::PrepareLock) };
 
             // Shutdown
-            (std::system_table().RuntimeServices.ResetSystem)(
-                ResetType::Shutdown,
-                Status(0),
-                0,
-                ptr::null(),
-            );
+            runtime::reset(ResetType::SHUTDOWN, Status::SUCCESS, None);
         }
     }
 
@@ -302,7 +290,7 @@ extern "efiapi" fn run() -> bool {
 #[derive(Debug)]
 #[repr(C)]
 pub struct System76SecurityProtocol {
-    pub run: unsafe extern "efiapi" fn() -> bool,
+    pub run: unsafe extern "efiapi" fn() -> Boolean,
 }
 
 impl System76SecurityProtocol {
@@ -310,19 +298,14 @@ impl System76SecurityProtocol {
 }
 
 pub fn install() -> Result<()> {
-    let uefi = std::system_table();
-
-    //let uefi = unsafe { std::system_table_mut() };
-
-    let protocol = Box::new(System76SecurityProtocol { run });
+    let protocol = Box::new(System76SecurityProtocol {
+        run,
+    });
     let protocol_ptr = Box::into_raw(protocol);
-    let mut handle = Handle(0);
-    Result::from((uefi.BootServices.InstallProtocolInterface)(
-        &mut handle,
-        &System76SecurityProtocol::GUID,
-        InterfaceType::Native,
-        protocol_ptr as usize,
-    ))?;
+
+    unsafe {
+        boot::install_protocol_interface(None, &System76SecurityProtocol::GUID, protocol_ptr.cast())?;
+    }
 
     Ok(())
 }

@@ -10,8 +10,11 @@ lto = true
 [dependencies]
 orbclient = { version = "0.3.46", default-features = false }
 orbfont = { version = "0.1.12", default-features = false, features = ["no-std"] }
-redox_uefi_std = "0.1.14"
 system76_ectool = { git = "https://github.com/system76/ec.git", default-features = false, features = ["redox_hwio"] }
+#uefi = { version = "0.36", features = ["panic_handler"] }
+#uefi-raw = "0.13"
+uefi = { path = "extern/uefi/uefi", features = ["global_allocator", "panic_handler"] }
+uefi-raw = { path = "extern/uefi/uefi-raw" }
 
 [features]
 default = []
