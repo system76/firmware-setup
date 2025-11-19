@@ -140,11 +140,11 @@ macro_rules! list_entry {
     ($t:ident, $l:tt) => {
         impl ListEntryObject<$t> for ListEntry<$t> {
             unsafe fn object(&self) -> &$t {
-                unsafe { self.object_at(offset_of!($t, $l)) }
+                unsafe { self.object_at(mem::offset_of!($t, $l)) }
             }
 
             unsafe fn object_mut(&mut self) -> &mut $t {
-                unsafe { self.object_at_mut(offset_of!($t, $l)) }
+                unsafe { self.object_at_mut(mem::offset_of!($t, $l)) }
             }
         }
     };
@@ -402,7 +402,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     'render: loop {
         let mut hotkey_helps = Vec::new();
         for hotkey in form.HotKeyListHead.iter() {
-            let hotkey_help = ffi::nstr(hotkey.HelpString);
+            let hotkey_help = unsafe { ffi::nstr(hotkey.HelpString) };
             hotkey_helps.push(hotkey_help);
         }
 

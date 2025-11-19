@@ -8,15 +8,10 @@ license = "GPL-3.0-only"
 lto = true
 
 [dependencies]
-memoffset = "0.9"
 orbclient = { version = "0.3.46", default-features = false }
 orbfont = { version = "0.1.12", default-features = false, features = ["no-std"] }
-redox_uefi_std = "0.1.13"
-
-[dependencies.system76_ectool]
-git = "https://github.com/system76/ec.git"
-default-features = false
-features = ["redox_hwio"]
+redox_uefi_std = "0.1.14"
+system76_ectool = { git = "https://github.com/system76/ec.git", default-features = false, features = ["redox_hwio"] }
 
 [features]
 default = []
