@@ -58,8 +58,8 @@ pub(crate) fn confirm(display: &mut Display) -> Result<()> {
     let form_width = cmp::min(640 * scale as u32, display_w - margin_lr as u32 * 2);
     let form_x = (display_w as i32 - form_width as i32) / 2;
 
-    let title_font_size = (12 * scale) as f32;
-    let font_size = (10 * scale) as f32;
+    let title_font_size = (20 * scale) as f32;
+    let font_size = (16 * scale) as f32;
     // } Style
 
     let ui = Ui::new()?;

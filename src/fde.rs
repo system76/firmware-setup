@@ -395,9 +395,9 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     let margin_lr = 12 * scale;
     let margin_tb = 4 * scale;
 
-    let title_font_size = (12 * scale) as f32;
-    let font_size = (10 * scale) as f32; // (display_h as f32) / 26.0
-    let help_font_size = (10 * scale) as f32;
+    let title_font_size = (20 * scale) as f32;
+    let font_size = (16 * scale) as f32; // (display_h as f32) / 26.0
+    let help_font_size = (12 * scale) as f32;
     // } Style
 
     let ui = Ui::new()?;
