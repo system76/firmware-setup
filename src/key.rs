@@ -79,11 +79,7 @@ pub fn raw_key(wait: bool) -> Result<TextInputKey> {
 
     if wait {
         let mut index = 0;
-        Result::from((uefi.BootServices.WaitForEvent)(
-            1,
-            &uefi.ConsoleIn.WaitForKey,
-            &mut index,
-        ))?;
+        Result::from((uefi.BootServices.WaitForEvent)(1, &uefi.ConsoleIn.WaitForKey, &mut index))?;
     }
 
     let mut key = TextInputKey {

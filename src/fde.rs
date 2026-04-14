@@ -350,11 +350,7 @@ fn wait_for_events(form: &Form) -> Result<EventType> {
         events.push(form.FormRefreshEvent);
     }
 
-    Result::from((uefi.BootServices.WaitForEvent)(
-        events.len(),
-        events.as_mut_ptr(),
-        &mut index,
-    ))?;
+    Result::from((uefi.BootServices.WaitForEvent)(events.len(), events.as_mut_ptr(), &mut index))?;
 
     if index == 0 {
         Ok(EventType::Keyboard)
@@ -420,9 +416,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 let option_ptr = option as *const _;
                 if let Some(op) = option.OptionOpCode() {
                     let value = unsafe { op.Value.to_enum(op.Kind) };
-                    let prompt = ui
-                        .font
-                        .render(&string(op.Option).unwrap_or_default(), font_size);
+                    let prompt = ui.font.render(&string(op.Option).unwrap_or_default(), font_size);
                     options.push(ElementOption {
                         option_ptr,
                         prompt,
@@ -431,86 +425,83 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 }
             }
 
-            let add_element =
-                |header: IfrStatementHeader, selectable: bool, editable: bool, list: bool| {
-                    let value = unsafe {
-                        statement
-                            .CurrentValue
-                            .Value
-                            .to_enum(statement.CurrentValue.Kind)
+            let add_element = |header: IfrStatementHeader,
+                               selectable: bool,
+                               editable: bool,
+                               list: bool| {
+                let value =
+                    unsafe { statement.CurrentValue.Value.to_enum(statement.CurrentValue.Kind) };
+                let buffer_opt = if statement.CurrentValue.Buffer.is_null() {
+                    None
+                } else {
+                    let buffer = unsafe {
+                        slice::from_raw_parts_mut(
+                            statement.CurrentValue.Buffer,
+                            statement.CurrentValue.BufferLen as usize,
+                        )
                     };
-                    let buffer_opt = if statement.CurrentValue.Buffer.is_null() {
-                        None
-                    } else {
-                        let buffer = unsafe {
-                            slice::from_raw_parts_mut(
-                                statement.CurrentValue.Buffer,
-                                statement.CurrentValue.BufferLen as usize,
-                            )
-                        };
-                        // Order list according to buffer
-                        if list {
-                            let mut offset = 0;
-                            for i in 0..options.len() {
-                                for j in i..options.len() {
-                                    macro_rules! check_option {
-                                        ($x:ident) => {{
-                                            let next_offset = offset + mem::size_of_val(&$x);
-                                            if next_offset <= buffer.len() {
-                                                let mut x_copy = $x;
-                                                unsafe {
-                                                    ptr::copy(
-                                                        buffer.as_ptr().add(offset) as *const _,
-                                                        &mut x_copy,
-                                                        1,
-                                                    );
-                                                };
-                                                if $x == x_copy {
-                                                    offset = next_offset;
-                                                    true
-                                                } else {
-                                                    false
-                                                }
+                    // Order list according to buffer
+                    if list {
+                        let mut offset = 0;
+                        for i in 0..options.len() {
+                            for j in i..options.len() {
+                                macro_rules! check_option {
+                                    ($x:ident) => {{
+                                        let next_offset = offset + mem::size_of_val(&$x);
+                                        if next_offset <= buffer.len() {
+                                            let mut x_copy = $x;
+                                            unsafe {
+                                                ptr::copy(
+                                                    buffer.as_ptr().add(offset) as *const _,
+                                                    &mut x_copy,
+                                                    1,
+                                                );
+                                            };
+                                            if $x == x_copy {
+                                                offset = next_offset;
+                                                true
                                             } else {
                                                 false
                                             }
-                                        }};
-                                    }
-                                    let matches = match options[j].value {
-                                        IfrTypeValueEnum::U8(u8) => check_option!(u8),
-                                        IfrTypeValueEnum::U16(u16) => check_option!(u16),
-                                        IfrTypeValueEnum::U32(u32) => check_option!(u32),
-                                        IfrTypeValueEnum::U64(u64) => check_option!(u64),
-                                        _ => false,
-                                    };
-                                    if matches {
-                                        if i != j {
-                                            options.swap(i, j);
+                                        } else {
+                                            false
                                         }
-                                        break;
+                                    }};
+                                }
+                                let matches = match options[j].value {
+                                    IfrTypeValueEnum::U8(u8) => check_option!(u8),
+                                    IfrTypeValueEnum::U16(u16) => check_option!(u16),
+                                    IfrTypeValueEnum::U32(u32) => check_option!(u32),
+                                    IfrTypeValueEnum::U64(u64) => check_option!(u64),
+                                    _ => false,
+                                };
+                                if matches {
+                                    if i != j {
+                                        options.swap(i, j);
                                     }
+                                    break;
                                 }
                             }
                         }
-                        Some(buffer)
-                    };
-                    if statement_ptr == form.HighLightedStatement || (selected == !0 && selectable)
-                    {
-                        selected = elements.len();
                     }
-                    elements.push(Element {
-                        statement_ptr,
-                        prompt: string(header.Prompt).unwrap_or_default(),
-                        help: string(header.Help).unwrap_or_default(),
-                        value,
-                        options,
-                        selectable,
-                        editable,
-                        list,
-                        list_i: 0,
-                        buffer_opt,
-                    });
+                    Some(buffer)
                 };
+                if statement_ptr == form.HighLightedStatement || (selected == !0 && selectable) {
+                    selected = elements.len();
+                }
+                elements.push(Element {
+                    statement_ptr,
+                    prompt: string(header.Prompt).unwrap_or_default(),
+                    help: string(header.Help).unwrap_or_default(),
+                    value,
+                    options,
+                    selectable,
+                    editable,
+                    list,
+                    list_i: 0,
+                    buffer_opt,
+                });
+            };
 
             if let Some(op) = statement.OpCode() {
                 macro_rules! cast {

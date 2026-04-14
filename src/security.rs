@@ -93,10 +93,7 @@ pub(crate) fn confirm(display: &mut Display) -> Result<()> {
     texts.push(ui.font.render(&code, font_size));
 
     let mut button_i = 0;
-    let buttons = [
-        ui.font.render("Confirm", font_size),
-        ui.font.render("Cancel", font_size),
-    ];
+    let buttons = [ui.font.render("Confirm", font_size), ui.font.render("Cancel", font_size)];
 
     let mut max_input = String::new();
     while max_input.len() < code.len() {
@@ -145,14 +142,7 @@ pub(crate) fn confirm(display: &mut Display) -> Result<()> {
 
         // Draw input box
         let input_text = ui.font.render(&input, font_size);
-        ui.draw_pretty_box(
-            display,
-            x,
-            y,
-            max_input_text.width(),
-            font_size as u32,
-            false,
-        );
+        ui.draw_pretty_box(display, x, y, max_input_text.width(), font_size as u32, false);
         input_text.draw(display, x, y, ui.text_color);
         if input.len() < code.len() {
             display.rect(
@@ -310,7 +300,9 @@ pub fn install() -> Result<()> {
 
     //let uefi = unsafe { std::system_table_mut() };
 
-    let protocol = Box::new(System76SecurityProtocol { Run: run });
+    let protocol = Box::new(System76SecurityProtocol {
+        Run: run,
+    });
     let protocol_ptr = Box::into_raw(protocol);
     let mut handle = Handle(0);
     Result::from((uefi.BootServices.InstallProtocolInterface)(

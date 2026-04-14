@@ -8,12 +8,7 @@ pub struct Rng(pub &'static mut RngProtocol);
 
 impl Rng {
     pub fn read(&self, buf: &mut [u8]) -> Result<()> {
-        Result::from((self.0.GetRNG)(
-            self.0,
-            ptr::null(),
-            buf.len(),
-            buf.as_mut_ptr(),
-        ))?;
+        Result::from((self.0.GetRNG)(self.0, ptr::null(), buf.len(), buf.as_mut_ptr()))?;
         Ok(())
     }
 }

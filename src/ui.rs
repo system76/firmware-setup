@@ -164,7 +164,7 @@ impl Ui {
                 self.highlight_color
             } else {
                 self.outline_color
-            }
+            },
         );
     }
 
@@ -178,14 +178,7 @@ impl Ui {
         highlighted: bool,
     ) {
         if pretty_box {
-            self.draw_pretty_box(
-                display,
-                x,
-                y,
-                rendered.width(),
-                rendered.height(),
-                highlighted,
-            );
+            self.draw_pretty_box(display, x, y, rendered.width(), rendered.height(), highlighted);
         }
         let text_color = if highlighted {
             self.highlight_text_color
