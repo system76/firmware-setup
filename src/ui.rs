@@ -151,6 +151,7 @@ impl Ui {
         // Style {
         let padding_lr = 4 * scale;
         let padding_tb = 2 * scale;
+        let radius = 4 * scale;
         // } Style
 
         display.rounded_rect(
@@ -158,7 +159,7 @@ impl Ui {
             y - padding_tb,
             w + (padding_lr * 2) as u32,
             h + (padding_tb * 2) as u32,
-            0,
+            radius as u32,
             highlighted,
             if highlighted {
                 self.highlight_color
