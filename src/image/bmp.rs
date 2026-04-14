@@ -24,9 +24,7 @@ pub fn parse(file_data: &[u8]) -> core::result::Result<Image, String> {
     };
 
     let gets = |start: usize, len: usize| -> String {
-        (start..start + len)
-            .map(|i| get(i) as char)
-            .collect::<String>()
+        (start..start + len).map(|i| get(i) as char).collect::<String>()
     };
 
     if gets(0, 2) == "BM" {

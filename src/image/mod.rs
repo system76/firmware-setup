@@ -23,10 +23,8 @@ impl ImageRoi<'_> {
     pub fn draw<R: Renderer>(&self, renderer: &mut R, x: i32, mut y: i32) {
         let stride = self.image.w;
         let mut offset = (self.y * stride + self.x) as usize;
-        let last_offset = cmp::min(
-            ((self.y + self.h) * stride + self.x) as usize,
-            self.image.data.len(),
-        );
+        let last_offset =
+            cmp::min(((self.y + self.h) * stride + self.x) as usize, self.image.data.len());
         while offset < last_offset {
             let next_offset = offset + stride as usize;
             renderer.image_legacy(x, y, self.w, 1, &self.image.data[offset..]);
@@ -68,7 +66,7 @@ impl Image {
     ) -> core::result::Result<Self, String> {
         if (width * height) as usize != data.len() {
             return Err(
-                "not enough or too much data given compared to width and height".to_string(),
+                "not enough or too much data given compared to width and height".to_string()
             );
         }
 
