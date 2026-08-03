@@ -192,6 +192,7 @@ pub(crate) fn confirm(display: &mut Display) -> Result<()> {
             }
             Key::Character(c) => match c {
                 '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
+                    #[allow(clippy::collapsible_match)]
                     if input.len() < code.len() {
                         input.push(c);
                     }
@@ -216,6 +217,7 @@ pub(crate) fn confirm(display: &mut Display) -> Result<()> {
                 input.clear();
             }
             Key::Down => {
+                #[allow(clippy::collapsible_match)]
                 if button_i + 1 < buttons.len() {
                     button_i += 1;
                 }

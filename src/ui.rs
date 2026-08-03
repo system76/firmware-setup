@@ -90,7 +90,7 @@ impl Ui {
     }
 
     //TODO: move to orbfont and optimize
-    pub fn render_text_wrapped(&self, string: &str, font_size: f32, width: u32) -> Vec<Text> {
+    pub fn render_text_wrapped(&self, string: &str, font_size: f32, width: u32) -> Vec<Text<'_>> {
         let mut texts = Vec::new();
 
         //TODO: support different whitespace differently, like newline?

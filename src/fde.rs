@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::collapsible_match)]
+
 use core::{char, cmp, mem, ptr, slice};
 use orbclient::{Color, Renderer};
 use orbfont::Text;
@@ -177,7 +180,7 @@ where
 pub struct ListHead<T>(ListEntry<T>);
 
 impl<T> ListHead<T> {
-    pub fn iter(&self) -> ListEntryIter<T> {
+    pub fn iter(&self) -> ListEntryIter<'_, T> {
         let next = self.0.next();
         ListEntryIter {
             start: next,
