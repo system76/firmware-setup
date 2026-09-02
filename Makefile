@@ -6,7 +6,11 @@ OVMF = /usr/share/OVMF
 
 .PHONY: build
 build:
-	cargo build --release
+	cargo build --release --target $(TARGET)
+
+.PHONY: clippy
+clippy:
+	cargo clippy --target $(TARGET)
 
 .PHONY: clean
 clean:

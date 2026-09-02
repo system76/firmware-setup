@@ -8,6 +8,7 @@
 extern crate uefi_std as std;
 
 use std::prelude::*;
+use std::uefi::boot::InterfaceType;
 
 use core::ptr;
 
@@ -16,6 +17,7 @@ mod fde;
 mod hii;
 pub mod image;
 mod key;
+mod popup;
 mod rng;
 mod security;
 mod ui;
@@ -36,5 +38,22 @@ pub extern "C" fn main() -> Status {
         let _ = key::key(true);
     }
 
-    Status(0)
+    {
+        let mut handle = Handle(0);
+
+        let status = (uefi.BootServices.InstallProtocolInterface)(
+            &mut handle,
+            &popup::HiiPopupProtocol::GUID,
+            InterfaceType::Native,
+            core::ptr::addr_of!(popup::HII_POPUP) as usize,
+        );
+
+        if !status.is_success() {
+            println!("HiiPopup error: {}", status);
+            let _ = key::key(true);
+            return status;
+        }
+    }
+
+    Status::SUCCESS
 }
