@@ -3,7 +3,7 @@
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::collapsible_match)]
 
-use core::{char, cmp, mem, ptr, slice};
+use core::{cmp, mem, ptr, slice};
 use orbclient::{Color, Renderer};
 use orbfont::Text;
 use std::ffi;
@@ -18,67 +18,9 @@ use std::uefi::hii::{AnimationId, ImageId, StringId};
 use std::uefi::text::TextInputKey;
 
 use crate::display::{Display, Output};
+use crate::hii::string::HiiStringProtocol;
 use crate::key::{Key, raw_key};
 use crate::ui::Ui;
-
-// TODO: Move to uefi library {
-pub const HII_STRING_PROTOCOL_GUID: Guid = guid!("0fd96974-23aa-4cdc-b9cb-98d17750322a");
-
-#[repr(C)]
-pub struct HiiStringProtocol {
-    pub NewString: extern "efiapi" fn(), //TODO
-    pub GetString: extern "efiapi" fn(
-        &HiiStringProtocol,
-        Language: *const u8,
-        PackageList: HiiHandle,
-        StringId: StringId,
-        String: *mut u16,
-        StringSize: &mut usize,
-        StringFontInfo: usize, // TODO
-    ) -> Status,
-    pub SetString: extern "efiapi" fn(),             //TODO
-    pub GetLanguages: extern "efiapi" fn(),          //TODO
-    pub GetSecondaryLanguages: extern "efiapi" fn(), //TODO
-}
-
-impl HiiStringProtocol {
-    pub fn string(&self, PackageList: HiiHandle, StringId: StringId) -> Result<String> {
-        let mut data = vec![0u16; 4096];
-        let mut len = data.len();
-        Result::from((self.GetString)(
-            self,
-            c"en-US".as_ptr() as *const u8,
-            PackageList,
-            StringId,
-            data.as_mut_ptr(),
-            &mut len,
-            0,
-        ))?;
-        data.truncate(len);
-
-        let mut string = String::new();
-        for &w in data.iter() {
-            if w == 0 {
-                break;
-            }
-            let c = unsafe { char::from_u32_unchecked(w as u32) };
-            string.push(c);
-        }
-        Ok(string)
-    }
-}
-
-impl Protocol<HiiStringProtocol> for &'static mut HiiStringProtocol {
-    fn guid() -> Guid {
-        HII_STRING_PROTOCOL_GUID
-    }
-
-    fn new(inner: &'static mut HiiStringProtocol) -> Self {
-        inner
-    }
-}
-
-// } TODO: Move to uefi library
 
 // TODO: move to uefi library {
 #[repr(C)]
