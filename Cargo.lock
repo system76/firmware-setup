@@ -162,6 +162,7 @@ dependencies = [
 name = "system76_firmware_setup"
 version = "1.0.0"
 dependencies = [
+ "bitflags",
  "orbclient",
  "orbfont",
  "redox_uefi_std",
