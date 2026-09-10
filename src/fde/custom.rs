@@ -3,260 +3,26 @@
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::collapsible_match)]
 
+use super::*;
+
 use core::{cmp, mem, ptr, slice};
 use orbclient::{Color, Renderer};
 use orbfont::Text;
 use std::ffi;
 use std::prelude::*;
 use std::proto::Protocol;
-use std::uefi::hii::database::HiiHandle;
+use std::uefi::hii::StringId;
 use std::uefi::hii::ifr::{
-    HiiValue, IfrAction, IfrCheckbox, IfrNumeric, IfrOneOf, IfrOneOfOption, IfrOpCode, IfrOpHeader,
-    IfrOrderedList, IfrRef, IfrStatementHeader, IfrSubtitle, IfrTypeValueEnum,
+    IfrAction, IfrCheckbox, IfrNumeric, IfrOneOf, IfrOpCode, IfrOrderedList, IfrRef,
+    IfrStatementHeader, IfrSubtitle, IfrTypeValueEnum,
 };
-use std::uefi::hii::{AnimationId, ImageId, StringId};
-use std::uefi::text::TextInputKey;
 
 use crate::display::{Display, Output};
 use crate::hii::string::HiiStringProtocol;
 use crate::key::{Key, raw_key};
 use crate::ui::Ui;
 
-// TODO: move to uefi library {
-#[repr(C)]
-pub struct ListEntry<T> {
-    Flink: *mut ListEntry<T>,
-    Blink: *mut ListEntry<T>,
-}
-
-#[allow(dead_code)]
-impl<T> ListEntry<T> {
-    pub fn previous(&self) -> Option<&Self> {
-        if self.Blink.is_null() {
-            None
-        } else {
-            Some(unsafe { &*self.Blink })
-        }
-    }
-
-    pub fn previous_mut(&mut self) -> Option<&mut Self> {
-        if self.Blink.is_null() {
-            None
-        } else {
-            Some(unsafe { &mut *self.Blink })
-        }
-    }
-
-    pub fn next(&self) -> Option<&Self> {
-        if self.Flink.is_null() {
-            None
-        } else {
-            Some(unsafe { &*self.Flink })
-        }
-    }
-
-    pub fn next_mut(&mut self) -> Option<&mut Self> {
-        if self.Flink.is_null() {
-            None
-        } else {
-            Some(unsafe { &mut *self.Flink })
-        }
-    }
-
-    unsafe fn object_at(&self, offset: usize) -> &T {
-        let addr = self as *const Self as usize;
-        unsafe { &*((addr - offset) as *const T) }
-    }
-
-    unsafe fn object_at_mut(&mut self, offset: usize) -> &mut T {
-        let addr = self as *mut Self as usize;
-        unsafe { &mut *((addr - offset) as *mut T) }
-    }
-}
-
-pub trait ListEntryObject<T> {
-    unsafe fn object(&self) -> &T;
-
-    #[allow(dead_code)]
-    unsafe fn object_mut(&mut self) -> &mut T;
-}
-
-macro_rules! list_entry {
-    ($t:ident, $l:tt) => {
-        impl ListEntryObject<$t> for ListEntry<$t> {
-            unsafe fn object(&self) -> &$t {
-                unsafe { self.object_at(mem::offset_of!($t, $l)) }
-            }
-
-            unsafe fn object_mut(&mut self) -> &mut $t {
-                unsafe { self.object_at_mut(mem::offset_of!($t, $l)) }
-            }
-        }
-    };
-}
-
-pub struct ListEntryIter<'a, T> {
-    start: Option<&'a ListEntry<T>>,
-    current: Option<&'a ListEntry<T>>,
-}
-
-impl<'a, T> Iterator for ListEntryIter<'a, T>
-where
-    ListEntry<T>: ListEntryObject<T>,
-{
-    type Item = &'a T;
-    fn next(&mut self) -> Option<Self::Item> {
-        let current = self.current.take()?;
-        let next = current.next();
-        if next.map(|x| x as *const _) == self.start.map(|x| x as *const _) {
-            self.current = None;
-            return None;
-        } else {
-            self.current = next;
-        }
-        Some(unsafe { current.object() })
-    }
-}
-
-#[repr(transparent)]
-pub struct ListHead<T>(ListEntry<T>);
-
-impl<T> ListHead<T> {
-    pub fn iter(&self) -> ListEntryIter<'_, T> {
-        let next = self.0.next();
-        ListEntryIter {
-            start: next,
-            current: next,
-        }
-    }
-}
-// } TODO: move to uefi library
-
-#[repr(C)]
-pub struct QuestionOption {
-    pub Signature: usize,
-    pub Link: ListEntry<QuestionOption>,
-    pub OptionOpCodePtr: *const IfrOneOfOption,
-    pub ImageId: ImageId,
-    pub AnimationId: AnimationId,
-}
-list_entry!(QuestionOption, Link);
-
-impl QuestionOption {
-    pub fn OptionOpCode(&self) -> Option<&IfrOneOfOption> {
-        if self.OptionOpCodePtr.is_null() {
-            None
-        } else {
-            Some(unsafe { &*self.OptionOpCodePtr })
-        }
-    }
-}
-
-#[repr(C)]
-pub struct StatementErrorInfo {
-    pub StringId: StringId,
-    pub TimeOut: u8,
-}
-
-pub type ValidateQuestion = extern "efiapi" fn(
-    Form: &Form,
-    Statement: &Statement,
-    Value: &HiiValue,
-    ErrorInfo: &mut StatementErrorInfo,
-) -> u32;
-
-pub type PasswordCheck =
-    extern "efiapi" fn(Form: &Form, Statement: &Statement, PasswordString: *const u16) -> Status;
-
-#[repr(C)]
-pub struct Statement {
-    pub Signature: usize,
-    pub Version: usize,
-    pub DisplayLink: ListEntry<Statement>,
-    pub OpCodePtr: *const IfrOpHeader,
-    pub CurrentValue: HiiValue,
-    pub SettingChangedFlag: bool,
-    pub NestStatementList: ListHead<Statement>,
-    pub OptionListHead: ListHead<QuestionOption>,
-    pub Attribute: u32,
-    pub ValidateQuestion: Option<ValidateQuestion>,
-    pub PasswordCheck: Option<PasswordCheck>,
-    pub ImageId: ImageId,
-    pub AnimationId: AnimationId,
-}
-list_entry!(Statement, DisplayLink);
-
-impl Statement {
-    pub fn OpCode(&self) -> Option<&IfrOpHeader> {
-        if self.OpCodePtr.is_null() {
-            None
-        } else {
-            Some(unsafe { &*self.OpCodePtr })
-        }
-    }
-}
-
-#[repr(C)]
-pub struct ScreenDescriptor {
-    pub LeftColumn: usize,
-    pub RightColumn: usize,
-    pub TopRow: usize,
-    pub BottomRow: usize,
-}
-
-#[repr(C)]
-pub struct HotKey {
-    pub Signature: usize,
-    pub Link: ListEntry<HotKey>,
-    pub KeyData: *const TextInputKey,
-    pub Action: u32,
-    pub DefaultId: u16,
-    pub HelpString: *const u16,
-}
-list_entry!(HotKey, Link);
-
-#[repr(C)]
-pub struct Form {
-    pub Signature: usize,
-    pub Version: usize,
-    pub StatementListHead: ListHead<Statement>,
-    pub StatementListOSF: ListHead<Statement>,
-    pub ScreenDimensions: *const ScreenDescriptor,
-    pub FormSetGuid: Guid,
-    pub HiiHandle: HiiHandle,
-    pub FormId: u16,
-    pub FormTitle: StringId,
-    pub Attribute: u32,
-    pub SettingChangedFlag: bool,
-    pub HighLightedStatement: *const Statement,
-    pub FormRefreshEvent: Event,
-    pub HotKeyListHead: ListHead<HotKey>,
-    pub ImageId: ImageId,
-    pub AnimationId: AnimationId,
-    pub BrowserStatus: u32,
-    pub ErrorString: *const u16,
-}
-
 const FRONT_PAGE_FORM_ID: u16 = 0x7600;
-
-const BROWSER_ACTION_NONE: u32 = 1 << 16;
-const BROWSER_ACTION_FORM_EXIT: u32 = 1 << 17;
-
-#[repr(C)]
-pub struct UserInput {
-    pub SelectedStatement: *const Statement,
-    pub InputValue: HiiValue,
-    pub Action: u32,
-    pub DefaultId: u16,
-}
-
-#[repr(C)]
-#[allow(non_snake_case)]
-pub struct Fde {
-    pub FormDisplay: extern "efiapi" fn(FormData: &Form, UserInputData: &mut UserInput) -> Status,
-    pub ExitDisplay: extern "efiapi" fn(),
-    pub ConfirmDataChange: extern "efiapi" fn() -> usize,
-}
 
 static mut DISPLAY: *mut Display = ptr::null_mut();
 
@@ -980,8 +746,17 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     Ok(())
 }
 
-extern "efiapi" fn form_display(form: &Form, user_input: &mut UserInput) -> Status {
-    form_display_inner(form, user_input).into()
+extern "efiapi" fn form_display(form: *const Form, user_input: *mut UserInput) -> Status {
+    if form.is_null() || user_input.is_null() {
+        return Status::INVALID_PARAMETER;
+    }
+
+    // SAFETY: Pointer is valid.
+    let form = unsafe { &*form };
+    // SAFETY: Pointer is valid.
+    let input = unsafe { &mut *user_input };
+
+    form_display_inner(form, input).into()
 }
 
 extern "efiapi" fn exit_display() {}
@@ -990,22 +765,24 @@ extern "efiapi" fn confirm_data_change() -> usize {
     0
 }
 
-impl Fde {
-    pub fn install() -> Result<()> {
-        let guid = guid!("9bbe29e9-fda1-41ec-ad52-452213742d2e");
+// TODO: Implement HII Popup and correctly install the protocols instead of
+// modifying the function pointers of the edk2 installed protocol.
+pub fn install() -> Result<()> {
+    let uefi = unsafe { std::system_table_mut() };
 
-        let uefi = unsafe { std::system_table_mut() };
+    let current = unsafe {
+        let mut interface = 0;
+        Result::from((uefi.BootServices.LocateProtocol)(
+            &FormDisplayEngine::GUID,
+            0,
+            &mut interface,
+        ))?;
+        &mut *(interface as *mut FormDisplayEngine)
+    };
 
-        let current = unsafe {
-            let mut interface = 0;
-            Result::from((uefi.BootServices.LocateProtocol)(&guid, 0, &mut interface))?;
-            &mut *(interface as *mut Fde)
-        };
+    current.FormDisplay = form_display;
+    current.ExitDisplay = exit_display;
+    current.ConfirmDataChange = confirm_data_change;
 
-        current.FormDisplay = form_display;
-        current.ExitDisplay = exit_display;
-        current.ConfirmDataChange = confirm_data_change;
-
-        Ok(())
-    }
+    Ok(())
 }
