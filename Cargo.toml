@@ -9,10 +9,14 @@ lto = true
 
 [dependencies]
 bitflags = "2.13"
+coreboot-table = { git = "https://gitlab.redox-os.org/redox-os/coreboot-table.git" }
 orbclient = { version = "=0.3.51", default-features = false }
 orbfont = { version = "0.1.12", default-features = false, features = ["no-std"] }
 redox_uefi_std = "0.1.14"
+spin = "0.12"
 system76_ectool = { git = "https://github.com/system76/ec.git", default-features = false, features = ["redox_hwio"] }
+uart_16550 = "0.8"
 
 [features]
 default = []
+debug = []
