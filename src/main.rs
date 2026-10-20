@@ -32,12 +32,12 @@ pub extern "C" fn main() -> Status {
     coreboot::init();
 
     if let Err(err) = fde::custom::install() {
-        println!("FDE error: {:?}", err);
+        debugln!("FDE error: {:?}", err);
         let _ = key::key(true);
     }
 
     if let Err(err) = security::install() {
-        println!("security error: {:?}", err);
+        debugln!("security error: {:?}", err);
         let _ = key::key(true);
     }
 
