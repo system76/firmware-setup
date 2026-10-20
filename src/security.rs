@@ -186,6 +186,7 @@ pub(crate) fn confirm(display: &mut Display) -> Result<()> {
         display.sync();
 
         let k = key(true)?;
+        debugln!("key: {:?}", k);
         match k {
             Key::Backspace => {
                 input.pop();
@@ -233,23 +234,33 @@ pub(crate) fn confirm(display: &mut Display) -> Result<()> {
 extern "efiapi" fn run() -> bool {
     let access = match unsafe { AccessLpcDirect::new(UefiTimeout::new(100_000)) } {
         Ok(ok) => ok,
-        Err(_) => return false,
+        Err(err) => {
+            debugln!("failed to access EC: {:?}", err);
+            return false;
+        }
     };
 
     let mut ec = match unsafe { Ec::new(access) } {
         Ok(ok) => ok,
-        Err(_) => return false,
+        Err(err) => {
+            debugln!("failed to probe EC: {:?}", err);
+            return false;
+        }
     };
 
     let security_state = match unsafe { ec.security_get() } {
         Ok(ok) => ok,
-        Err(_) => return false,
+        Err(err) => {
+            debugln!("failed to get EC security state: {:?}", err);
+            return false;
+        }
     };
 
     // The EC will already be set to unlocked at this point, so the prompt
     // must be run even when in the "Unlock" state. This is fine, as the
     // prompt is for physical presence detection.
 
+    debugln!("security state: {:?}", security_state);
     if security_state == SecurityState::Lock {
         // Already locked, so do not confirm
         return false;
@@ -269,14 +280,24 @@ extern "efiapi" fn run() -> bool {
 
             res
         }
-        Err(err) => Err(err),
+        Err(err) => {
+            debugln!("failed to get output: {:?}", err);
+            Err(err)
+        }
     };
 
     match res {
-        Ok(()) => (),
-        Err(_) => {
+        Ok(()) => debugln!("confirmed"),
+        Err(err) => {
+            debugln!("failed to confirm: {:?}", err);
+
             // Lock on next shutdown, will power on automatically
-            let _ = unsafe { ec.security_set(SecurityState::PrepareLock) };
+            match unsafe { ec.security_set(SecurityState::PrepareLock) } {
+                Ok(()) => (),
+                Err(err) => {
+                    debugln!("failed to prepare to lock EC security state: {:?}", err)
+                }
+            }
 
             // Shutdown
             (std::system_table().RuntimeServices.ResetSystem)(
