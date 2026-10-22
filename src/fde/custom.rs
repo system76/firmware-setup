@@ -743,6 +743,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
         }
     }
 
+    debugln!("selected: {:p}, action: {:#x}", user_input.SelectedStatement, user_input.Action);
+
     Ok(())
 }
 
@@ -756,12 +758,16 @@ extern "efiapi" fn form_display(form: *const Form, user_input: *mut UserInput) -
     // SAFETY: Pointer is valid.
     let input = unsafe { &mut *user_input };
 
+    debugln!("form_display: {:#X}", form.FormId);
     form_display_inner(form, input).into()
 }
 
-extern "efiapi" fn exit_display() {}
+extern "efiapi" fn exit_display() {
+    debugln!("exit_display");
+}
 
 extern "efiapi" fn confirm_data_change() -> usize {
+    debugln!("confirm_data_change");
     0
 }
 
@@ -779,6 +785,8 @@ pub fn install() -> Result<()> {
         ))?;
         &mut *(interface as *mut FormDisplayEngine)
     };
+
+    debugln!("Current FDE: {:#p}", current);
 
     current.FormDisplay = form_display;
     current.ExitDisplay = exit_display;
