@@ -291,10 +291,14 @@ extern "efiapi" fn run() -> bool {
     true
 }
 
-pub const SYSTEM76_SECURITY_PROTOCOL_GUID: Guid = guid!("764247c4-a859-4a6b-b500-ed5d7a707dd4");
+#[derive(Debug)]
+#[repr(C)]
 pub struct System76SecurityProtocol {
-    #[allow(dead_code)]
-    pub Run: extern "efiapi" fn() -> bool,
+    pub run: extern "efiapi" fn() -> bool,
+}
+
+impl System76SecurityProtocol {
+    pub const GUID: Guid = guid!("764247c4-a859-4a6b-b500-ed5d7a707dd4");
 }
 
 pub fn install() -> Result<()> {
@@ -303,13 +307,13 @@ pub fn install() -> Result<()> {
     //let uefi = unsafe { std::system_table_mut() };
 
     let protocol = Box::new(System76SecurityProtocol {
-        Run: run,
+        run,
     });
     let protocol_ptr = Box::into_raw(protocol);
     let mut handle = Handle(0);
     Result::from((uefi.BootServices.InstallProtocolInterface)(
         &mut handle,
-        &SYSTEM76_SECURITY_PROTOCOL_GUID,
+        &System76SecurityProtocol::GUID,
         InterfaceType::Native,
         protocol_ptr as usize,
     ))?;

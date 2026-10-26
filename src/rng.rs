@@ -2,8 +2,7 @@ use core::ptr;
 use std::prelude::*;
 use std::proto::Protocol;
 
-pub const RNG_PROTOCOL_GUID: Guid = guid!("3152bca5-eade-433d-862e-c01cdc291f44");
-
+#[derive(Debug)]
 pub struct Rng(pub &'static mut RngProtocol);
 
 impl Rng {
@@ -15,7 +14,7 @@ impl Rng {
 
 impl Protocol<RngProtocol> for Rng {
     fn guid() -> Guid {
-        RNG_PROTOCOL_GUID
+        RngProtocol::GUID
     }
 
     fn new(inner: &'static mut RngProtocol) -> Self {
@@ -23,6 +22,7 @@ impl Protocol<RngProtocol> for Rng {
     }
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct RngProtocol {
     pub GetInfo: extern "efiapi" fn(
@@ -36,4 +36,8 @@ pub struct RngProtocol {
         RNGValueLength: usize,
         RNGValue: *mut u8,
     ) -> Status,
+}
+
+impl RngProtocol {
+    pub const GUID: Guid = guid!("3152bca5-eade-433d-862e-c01cdc291f44");
 }
