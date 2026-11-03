@@ -2,7 +2,6 @@
 
 #![no_std]
 #![no_main]
-#![allow(non_snake_case)]
 
 #[macro_use]
 extern crate uefi_std as std;

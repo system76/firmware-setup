@@ -57,8 +57,8 @@ fn wait_for_events(form: &Form) -> Result<EventType> {
     let mut index = 0;
     let mut events = vec![uefi.ConsoleIn.WaitForKey];
 
-    if form.FormRefreshEvent != Event(0) {
-        events.push(form.FormRefreshEvent);
+    if form.form_refresh_event != Event(0) {
+        events.push(form.form_refresh_event);
     }
 
     Result::from((uefi.BootServices.WaitForEvent)(events.len(), events.as_mut_ptr(), &mut index))?;
@@ -75,7 +75,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
     let hii_string = <&'static mut HiiStringProtocol>::one()?;
 
     let string =
-        |string_id: StringId| -> Result<String> { hii_string.string(form.HiiHandle, string_id) };
+        |string_id: StringId| -> Result<String> { hii_string.string(form.hii_handle, string_id) };
 
     let display: &mut Display = unsafe {
         if DISPLAY.is_null() {
@@ -111,21 +111,21 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
     'render: loop {
         let mut hotkey_helps = Vec::new();
-        for hotkey in form.HotKeyListHead.iter() {
-            let hotkey_help = unsafe { ffi::nstr(hotkey.HelpString) };
+        for hotkey in form.hotkey_list_head.iter() {
+            let hotkey_help = unsafe { ffi::nstr(hotkey.help_string) };
             hotkey_helps.push(hotkey_help);
         }
 
         let mut selected = !0;
         let mut editing = false;
         let mut elements = Vec::new();
-        for statement in form.StatementListHead.iter() {
+        for statement in form.statement_list_head.iter() {
             let statement_ptr = statement as *const _;
 
             let mut options = Vec::new();
-            for option in statement.OptionListHead.iter() {
+            for option in statement.option_list_head.iter() {
                 let option_ptr = option as *const _;
-                if let Some(op) = option.OptionOpCode() {
+                if let Some(op) = option.option_opcode() {
                     let value = unsafe { op.Value.to_enum(op.Kind) };
                     let prompt = ui.font.render(&string(op.Option).unwrap_or_default(), font_size);
                     options.push(ElementOption {
@@ -141,14 +141,14 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                                editable: bool,
                                list: bool| {
                 let value =
-                    unsafe { statement.CurrentValue.Value.to_enum(statement.CurrentValue.Kind) };
-                let buffer_opt = if statement.CurrentValue.Buffer.is_null() {
+                    unsafe { statement.current_value.Value.to_enum(statement.current_value.Kind) };
+                let buffer_opt = if statement.current_value.Buffer.is_null() {
                     None
                 } else {
                     let buffer = unsafe {
                         slice::from_raw_parts_mut(
-                            statement.CurrentValue.Buffer,
-                            statement.CurrentValue.BufferLen as usize,
+                            statement.current_value.Buffer,
+                            statement.current_value.BufferLen as usize,
                         )
                     };
                     // Order list according to buffer
@@ -197,7 +197,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                     }
                     Some(buffer)
                 };
-                if statement_ptr == form.HighLightedStatement || (selected == !0 && selectable) {
+                if statement_ptr == form.highlighted_statement || (selected == !0 && selectable) {
                     selected = elements.len();
                 }
                 elements.push(Element {
@@ -214,7 +214,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 });
             };
 
-            if let Some(op) = statement.OpCode() {
+            if let Some(op) = statement.opcode() {
                 macro_rules! cast {
                     ($type:ty) => {{ op.cast::<$type>() }};
                 }
@@ -259,7 +259,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
             }
         }
 
-        let title_opt = string(form.FormTitle).ok();
+        let title_opt = string(form.form_title).ok();
         let mut element_start = 0;
         'display: loop {
             display.set(ui.background_color);
@@ -362,7 +362,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
                 if editing {
                     render_hotkey_help("Esc=Discard Changes");
-                } else if form.FormId == FRONT_PAGE_FORM_ID {
+                } else if form.form_id == FRONT_PAGE_FORM_ID {
                     render_hotkey_help("");
                 } else {
                     render_hotkey_help("Esc=Exit");
@@ -487,7 +487,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
             let signaled = wait_for_events(form)?;
             if signaled == EventType::Driver {
-                user_input.Action = BROWSER_ACTION_NONE;
+                user_input.action = BROWSER_ACTION_NONE;
                 break 'render;
             }
 
@@ -502,13 +502,13 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                 };
 
                 if !editing {
-                    for hotkey in form.HotKeyListHead.iter() {
-                        let key_data = unsafe { &*hotkey.KeyData };
+                    for hotkey in form.hotkey_list_head.iter() {
+                        let key_data = unsafe { &*hotkey.key_data };
                         if key_data.ScanCode == raw_key.ScanCode
                             && key_data.UnicodeChar == raw_key.UnicodeChar
                         {
-                            user_input.Action = hotkey.Action;
-                            user_input.DefaultId = hotkey.DefaultId;
+                            user_input.action = hotkey.action;
+                            user_input.default_id = hotkey.default_id;
                             break 'render;
                         }
                     }
@@ -521,7 +521,7 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                             let mut checkbox = false;
                             {
                                 let statement = unsafe { &(*element.statement_ptr) };
-                                if let Some(op) = statement.OpCode() {
+                                if let Some(op) = statement.opcode() {
                                     #[allow(clippy::single_match)]
                                     match op.OpCode {
                                         IfrOpCode::Checkbox => checkbox = true,
@@ -532,30 +532,30 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
 
                             if checkbox {
                                 if let IfrTypeValueEnum::Bool(b) = element.value {
-                                    user_input.SelectedStatement = element.statement_ptr;
+                                    user_input.selected_statement = element.statement_ptr;
                                     unsafe {
                                         ptr::copy(
-                                            &(*element.statement_ptr).CurrentValue,
-                                            &mut user_input.InputValue,
+                                            &(*element.statement_ptr).current_value,
+                                            &mut user_input.input_value,
                                             1,
                                         );
                                     }
 
                                     let (kind, value) =
                                         unsafe { IfrTypeValueEnum::Bool(!b).to_union() };
-                                    user_input.InputValue.Kind = kind;
-                                    user_input.InputValue.Value = value;
+                                    user_input.input_value.Kind = kind;
+                                    user_input.input_value.Value = value;
 
                                     break 'render;
                                 }
                             } else if element.editable && !editing {
                                 editing = true;
                             } else {
-                                user_input.SelectedStatement = element.statement_ptr;
+                                user_input.selected_statement = element.statement_ptr;
                                 unsafe {
                                     ptr::copy(
-                                        &(*element.statement_ptr).CurrentValue,
-                                        &mut user_input.InputValue,
+                                        &(*element.statement_ptr).current_value,
+                                        &mut user_input.input_value,
                                         1,
                                     );
                                 }
@@ -597,8 +597,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                                         }
                                     } else {
                                         let (kind, value) = unsafe { element.value.to_union() };
-                                        user_input.InputValue.Kind = kind;
-                                        user_input.InputValue.Value = value;
+                                        user_input.input_value.Kind = kind;
+                                        user_input.input_value.Value = value;
                                     }
                                     editing = false;
                                 }
@@ -610,8 +610,8 @@ fn form_display_inner(form: &Form, user_input: &mut UserInput) -> Result<()> {
                         if editing {
                             editing = false;
                             break 'display;
-                        } else if form.FormId != FRONT_PAGE_FORM_ID {
-                            user_input.Action = BROWSER_ACTION_FORM_EXIT;
+                        } else if form.form_id != FRONT_PAGE_FORM_ID {
+                            user_input.action = BROWSER_ACTION_FORM_EXIT;
                             break 'render;
                         }
                     }
@@ -780,9 +780,9 @@ pub fn install() -> Result<()> {
         &mut *(interface as *mut FormDisplayEngine)
     };
 
-    current.FormDisplay = form_display;
-    current.ExitDisplay = exit_display;
-    current.ConfirmDataChange = confirm_data_change;
+    current.form_display = form_display;
+    current.exit_display = exit_display;
+    current.confirm_data_change = confirm_data_change;
 
     Ok(())
 }

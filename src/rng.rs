@@ -7,7 +7,7 @@ pub struct Rng(pub &'static mut RngProtocol);
 
 impl Rng {
     pub fn read(&self, buf: &mut [u8]) -> Result<()> {
-        Result::from((self.0.GetRNG)(self.0, ptr::null(), buf.len(), buf.as_mut_ptr()))?;
+        Result::from((self.0.get_rng)(self.0, ptr::null(), buf.len(), buf.as_mut_ptr()))?;
         Ok(())
     }
 }
@@ -25,16 +25,16 @@ impl Protocol<RngProtocol> for Rng {
 #[derive(Debug)]
 #[repr(C)]
 pub struct RngProtocol {
-    pub GetInfo: extern "efiapi" fn(
+    pub get_info: extern "efiapi" fn(
         &RngProtocol,
-        RNGAlgorithmListSize: &mut usize,
-        RNGAlgorithmList: *mut Guid,
+        algorithm_list_size: &mut usize,
+        algorithm_list: *mut Guid,
     ) -> Status,
-    pub GetRNG: extern "efiapi" fn(
+    pub get_rng: extern "efiapi" fn(
         &RngProtocol,
-        RNGAlgorithm: *const Guid,
-        RNGValueLength: usize,
-        RNGValue: *mut u8,
+        algorithm: *const Guid,
+        value_length: usize,
+        value: *mut u8,
     ) -> Status,
 }
 

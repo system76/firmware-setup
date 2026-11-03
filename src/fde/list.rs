@@ -5,41 +5,41 @@
 
 #[repr(C)]
 pub struct ListEntry<T> {
-    pub Flink: *mut ListEntry<T>,
-    pub Blink: *mut ListEntry<T>,
+    pub f_link: *mut ListEntry<T>,
+    pub b_link: *mut ListEntry<T>,
 }
 
 #[allow(dead_code)]
 impl<T> ListEntry<T> {
     pub fn previous(&self) -> Option<&Self> {
-        if self.Blink.is_null() {
+        if self.b_link.is_null() {
             None
         } else {
-            Some(unsafe { &*self.Blink })
+            Some(unsafe { &*self.b_link })
         }
     }
 
     pub fn previous_mut(&mut self) -> Option<&mut Self> {
-        if self.Blink.is_null() {
+        if self.b_link.is_null() {
             None
         } else {
-            Some(unsafe { &mut *self.Blink })
+            Some(unsafe { &mut *self.b_link })
         }
     }
 
     pub fn next(&self) -> Option<&Self> {
-        if self.Flink.is_null() {
+        if self.f_link.is_null() {
             None
         } else {
-            Some(unsafe { &*self.Flink })
+            Some(unsafe { &*self.f_link })
         }
     }
 
     pub fn next_mut(&mut self) -> Option<&mut Self> {
-        if self.Flink.is_null() {
+        if self.f_link.is_null() {
             None
         } else {
-            Some(unsafe { &mut *self.Flink })
+            Some(unsafe { &mut *self.f_link })
         }
     }
 
